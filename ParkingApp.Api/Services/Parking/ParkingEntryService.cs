@@ -75,10 +75,16 @@ namespace ParkingApp.Api.Services.Parking
 		#endregion
 
 		#region GET METHODS
-		public async Task<ApiResponse<List<ParkingEntryDto>>> GetAllAsync()
+		public async Task<ApiResponse<List<ParkingEntryDto>>> GetAllAsync(bool includeDeleted = false)
 		{
-			var parkingEntries = await _dbContext.ParkingEntries
-				.Where(parkingEntry => !parkingEntry.IsDeleted)
+			var query = _dbContext.ParkingEntries.AsQueryable();
+
+			if (!includeDeleted)
+			{
+				query = query.Where(parkingEntry => !parkingEntry.IsDeleted);
+			}
+
+			var parkingEntries = await query
 				.OrderByDescending(parkingEntry => parkingEntry.EntryDateTime)
 				.ToListAsync();
 
@@ -94,12 +100,19 @@ namespace ParkingApp.Api.Services.Parking
 			};
 		}
 
-		public async Task<ApiResponse<ParkingEntryDto>> GetByIdAsync(int id)
+		public async Task<ApiResponse<ParkingEntryDto>> GetByIdAsync(int id, bool includeDeleted = false)
 		{
-			var parkingEntry = await _dbContext.ParkingEntries
-				.FirstOrDefaultAsync(parkingEntry => 
-				parkingEntry.Id == id && !parkingEntry.IsDeleted);
-			if(parkingEntry is null)
+			var query = _dbContext.ParkingEntries.AsQueryable();
+
+			if (!includeDeleted)
+			{
+				query = query.Where(parkingEntry => !parkingEntry.IsDeleted);
+			}
+
+			var parkingEntry = await query
+				.FirstOrDefaultAsync(parkingEntry => parkingEntry.Id == id);
+
+			if (parkingEntry is null)
 			{
 				return new ApiResponse<ParkingEntryDto>
 				{
@@ -112,7 +125,7 @@ namespace ParkingApp.Api.Services.Parking
 			{
 				Success = true,
 				Value = MapToDto(parkingEntry),
-				Message = "Parking entry loaded succesfully."
+				Message = "Parking entry loaded successfully."
 			};
 		}
 		#endregion
@@ -164,7 +177,9 @@ namespace ParkingApp.Api.Services.Parking
 				Car = parkingEntry.Car,
 				DriverName = parkingEntry.DriverName,
 				EntryDateTime = parkingEntry.EntryDateTime,
-				ExitDateTime = parkingEntry.ExitDateTime
+				ExitDateTime = parkingEntry.ExitDateTime,
+				IsDeleted = parkingEntry.IsDeleted,
+				DeletedAt = parkingEntry.DeletedAt
 
 			};
 		}

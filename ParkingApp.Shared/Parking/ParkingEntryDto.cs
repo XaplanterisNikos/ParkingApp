@@ -11,5 +11,9 @@ namespace ParkingApp.Shared.Parking
 		public string DriverName { get; set;  } = string.Empty;
 		public DateTime EntryDateTime { get; set; }
 		public DateTime? ExitDateTime { get; set; }
+
+		public bool IsDeleted { get; set; }
+
+		public DateTime? DeletedAt { get; set; }
 	}
 }
