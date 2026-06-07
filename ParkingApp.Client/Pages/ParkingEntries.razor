@@ -1,0 +1,105 @@
+﻿@page "/"
+@page "/parking-entries"
+
+@using ParkingApp.Client.Consumers.Parking
+@using ParkingApp.Shared.Parking
+@using ParkingApp.Shared.Responses
+
+@inject IParkingEntriesConsumer ParkingEntriesConsumer
+
+<h3>Parking entries</h3>
+
+<div style="margin-bottom: 16px;">
+    <label>
+        <input type="checkbox" @bind="includeDeleted" />
+        Include deleted entries
+    </label>
+
+    <button @onclick="LoadParkingEntriesAsync" disabled="@isLoading">
+        Reload
+    </button>
+</div>
+
+@if (isLoading)
+{
+    <p>Loading parking entries...</p>
+}
+else if (!string.IsNullOrWhiteSpace(errorMessage))
+{
+    <p style="color: red;">@errorMessage</p>
+}
+else if (parkingEntries.Count == 0)
+{
+    <p>No parking entries found.</p>
+}
+else
+{
+    <table border="1" cellpadding="8" cellspacing="0">
+        <thead>
+            <tr>
+                <th>Id</th>
+                <th>Employee id</th>
+                <th>Floor</th>
+                <th>Level</th>
+                <th>Position</th>
+                <th>Car</th>
+                <th>Driver</th>
+                <th>Entry time</th>
+                <th>Exit time</th>
+                <th>Deleted</th>
+            </tr>
+        </thead>
+        <tbody>
+            @foreach (var entry in parkingEntries)
+            {
+                <tr>
+                    <td>@entry.Id</td>
+                    <td>@entry.RegisteredByEmployeeId</td>
+                    <td>@entry.ParkingPosition.Floor</td>
+                    <td>@entry.ParkingPosition.Level</td>
+                    <td>@entry.ParkingPosition.Position</td>
+                    <td>@entry.Car</td>
+                    <td>@entry.DriverName</td>
+                    <td>@entry.EntryDateTime.ToString("dd/MM/yyyy HH:mm")</td>
+                    <td>@(entry.ExitDateTime?.ToString("dd/MM/yyyy HH:mm") ?? "-")</td>
+                    <td>@entry.IsDeleted</td>
+                </tr>
+            }
+        </tbody>
+    </table>
+}
+
+@code {
+    private List<ParkingEntryDto> parkingEntries = new();
+
+    private bool includeDeleted;
+
+    private bool isLoading;
+
+    private string? errorMessage;
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadParkingEntriesAsync();
+    }
+
+    private async Task LoadParkingEntriesAsync()
+    {
+        isLoading = true;
+        errorMessage = null;
+
+        var response = await ParkingEntriesConsumer.GetAllParkingEntriesAsync(includeDeleted);
+
+        if (!response.Success)
+        {
+            errorMessage = response.Message ?? "Parking entries could not be loaded.";
+            parkingEntries = new();
+        }
+        else
+        {
+            parkingEntries = response.Value ?? new List<ParkingEntryDto>();
+        }
+
+        isLoading = false;
+    }
+}

@@ -9,6 +9,18 @@ builder.Services.AddDbContext<ParkingDbContext>(options =>
 	options.UseSqlServer(builder.Configuration.GetConnectionString("ParkingDb"));
 });
 
+builder.Services.AddCors(options =>
+{
+	options.AddPolicy("ParkingClientPolicy", policy =>
+	{
+		policy
+			.WithOrigins(
+				"https://localhost:7065",
+				"http://localhost:5192")
+			.AllowAnyHeader()
+			.AllowAnyMethod();
+	});
+});
 // Add services to the container.
 
 builder.Services.AddControllers();
@@ -28,6 +40,8 @@ if (app.Environment.IsDevelopment())
 }
 
 app.UseHttpsRedirection();
+
+app.UseCors("ParkingClientPolicy");
 
 app.UseAuthorization();
 
