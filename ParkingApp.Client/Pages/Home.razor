@@ -1,0 +1,32 @@
+﻿@page "/"
+@using Microsoft.AspNetCore.Authorization
+@using ParkingApp.Client.Services.Auth
+@attribute [Authorize]
+
+<h1>Welcome</h1>
+
+<AuthorizeView>
+    <Authorized>
+        <p>You are signed in as <strong>@context.User.Identity?.Name</strong>.</p>
+        <p>Role: <strong>@GetClaim(context.User, System.Security.Claims.ClaimTypes.Role)</strong></p>
+        <p>Company id: <strong>@GetClaim(context.User, "companyId")</strong></p>
+
+        <button @onclick="Logout">Sign out</button>
+    </Authorized>
+</AuthorizeView>
+
+@code {
+    [Inject] private IAuthService AuthService { get; set; } = default!;
+    [Inject] private NavigationManager Navigation { get; set; } = default!;
+
+    /// <summary>Reads a single claim value by type, or a placeholder if missing.</summary>
+    private static string GetClaim(System.Security.Claims.ClaimsPrincipal user, string type) =>
+        user.FindFirst(type)?.Value ?? "(not set)";
+
+    /// <summary>Logs out and returns to the login page.</summary>
+    private async Task Logout()
+    {
+        await AuthService.LogoutAsync();
+        Navigation.NavigateTo("login");
+    }
+}

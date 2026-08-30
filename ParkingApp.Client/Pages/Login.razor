@@ -1,0 +1,63 @@
+﻿@page "/login"
+@using ParkingApp.Client.Services.Auth
+@using ParkingApp.Shared.Auth
+@inject IAuthService AuthService
+@inject NavigationManager Navigation
+
+<h1>Sign in</h1>
+
+<EditForm Model="@_model" OnValidSubmit="HandleLogin">
+    <DataAnnotationsValidator />
+
+    <div>
+        <label for="username">Username</label>
+        <InputText id="username" @bind-Value="_model.UserName" />
+    </div>
+
+    <div>
+        <label for="password">Password</label>
+        <InputText id="password" type="password" @bind-Value="_model.Password" />
+    </div>
+
+    @if (!string.IsNullOrEmpty(_error))
+    {
+        <p role="alert" style="color:red">@_error</p>
+    }
+
+    <button type="submit" disabled="@_isSubmitting">
+        @(_isSubmitting ? "Signing in..." : "Sign in")
+    </button>
+</EditForm>
+
+@code {
+    /// <summary>The form's data, bound to the input fields.</summary>
+    private readonly LoginRequest _model = new() { UserName = "", Password = "" };
+
+    /// <summary>Error message shown when login fails.</summary>
+    private string? _error;
+
+    /// <summary>True while the login request is in flight (disables the button).</summary>
+    private bool _isSubmitting;
+
+    /// <summary>
+    /// Called when the form is submitted with valid input. Attempts login and either
+    /// navigates home on success or shows the error message on failure.
+    /// </summary>
+    private async Task HandleLogin()
+    {
+        _isSubmitting = true;
+        _error = null;
+
+        var (success, error) = await AuthService.LoginAsync(_model);
+
+        if (success)
+        {
+            Navigation.NavigateTo("");
+        }
+        else
+        {
+            _error = error;
+            _isSubmitting = false;
+        }
+    }
+}

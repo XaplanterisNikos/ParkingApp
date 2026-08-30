@@ -1,0 +1,12 @@
+﻿@inject NavigationManager Navigation
+
+@code {
+    /// <summary>
+    /// Redirects the browser to the login page as soon as this component renders.
+    /// Used by AuthorizeRouteView when an anonymous user hits a protected page.
+    /// </summary>
+    protected override void OnInitialized()
+    {
+        Navigation.NavigateTo("login");
+    }
+}
