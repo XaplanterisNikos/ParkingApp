@@ -57,10 +57,15 @@ model from day one, not an afterthought.
 | Auth backend (Identity + JWT, multi-tenant claims) | **Done** |
 | Login endpoint returning a signed JWT | **Done** |
 | Seed (roles + demo owner + demo company) | **Done** |
-| Blazor client auth (login page, protected page) | In progress |
+| Blazor client auth (login page, protected route, logout, token persistence) | **Done** |
+| Company profile endpoint (`/api/companies/me`) — show company name | Next |
 | Parking branches, floors, spots | Planned |
 | Employees & shifts | Planned |
 | Vehicle entries & statistics | Planned |
+
+**Feature Slice 1 (authentication) is complete end-to-end** — a seeded owner can log in from
+the Blazor UI, receives a JWT, and lands on a protected page that reads their identity, role,
+and company id from the token. Logging out clears the token and blocks protected pages again.
 
 > **Note on `ParkingEntry`:** an early prototype (a flat "vehicle entry log") exists in the
 > codebase from the project's first iteration. It is currently **dormant** and will be
@@ -86,6 +91,9 @@ model from day one, not an afterthought.
 - `AuthController` login endpoint returning a uniform `ApiResponse<LoginResponse>`
 - Identity + JWT bearer wired into the request pipeline
 - EF Core migration for the Identity and Company tables
+- **Blazor client authentication:** token persistence in `localStorage`, a custom
+  `AuthenticationStateProvider` that reads claims from the JWT, an auth service/consumer pair,
+  a login page, a protected home page, and logout — completing Feature Slice 1 end-to-end
 
 ---
 
@@ -98,7 +106,8 @@ model from day one, not an afterthought.
 | Frontend        | Blazor WebAssembly                                      |
 | Data access     | Entity Framework Core (Code-First migrations)           |
 | Database        | SQL Server                                              |
-| Authentication  | ASP.NET Core Identity + JWT Bearer                      |
+| Authentication  | ASP.NET Core Identity + JWT Bearer (API); JWT claims + `AuthorizeRouteView` (client) |
+| Client storage  | Blazored.LocalStorage (token persistence)              |
 | API docs        | Swagger / OpenAPI (Development only)                    |
 | Language        | C#                                                       |
 
@@ -121,6 +130,9 @@ their HTTP conversation is type-safe.
 
 - **Folder organisation:** services grouped by area inside the API (`Services/Auth`,
   `Services/Parking`) — pragmatic feature folders rather than full Clean Architecture layering.
+- **Client-side layering:** a **Consumer** owns pure HTTP communication with the API
+  (e.g. `AuthConsumer`), while a **Service** owns orchestration and state
+  (e.g. `AuthService`: token storage + auth-state notification). Each layer has one responsibility.
 - **Uniform responses:** every endpoint returns an `ApiResponse<T>` envelope
   (`Success` / `Message` / `Errors` / `Value`) via `.Ok(...)` / `.Fail(...)` factory methods.
 - **Typed actions:** controllers return `ActionResult<T>` so the success payload type is explicit
@@ -237,6 +249,24 @@ while staying close to the intended architecture.
   to avoid user enumeration.
 - The JWT is **signed, not encrypted**: its claims are readable by anyone holding the token,
   so no secrets are ever placed inside it — only id, role, and company id.
+
+---
+
+## ⚖️ Known limitations & deliberate scope
+
+Some production-grade concerns are intentionally out of scope for this phase. They are
+documented here as conscious decisions, not oversights:
+
+- **JWT stored in `localStorage`.** The access token is kept in the browser's `localStorage`,
+  which is readable by JavaScript and therefore exposed to XSS attacks if the app ever had an
+  XSS vulnerability. This is the most common approach for learning/portfolio Blazor apps and is
+  used here for simplicity. A hardened, production-grade setup would instead use `httpOnly`
+  cookies (inaccessible to JavaScript), typically combined with anti-CSRF measures and short-lived
+  access tokens plus refresh tokens. That is understood but not implemented at this stage.
+- **No token refresh / sliding expiration yet.** Tokens simply expire after their lifetime;
+  the user logs in again. Refresh-token rotation is planned for a later phase.
+- **No account lockout / brute-force protection on login.** `lockoutOnFailure` is currently off;
+  it can be enabled once a lockout policy is defined.
 
 ---
 
