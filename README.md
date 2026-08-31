@@ -58,14 +58,18 @@ model from day one, not an afterthought.
 | Login endpoint returning a signed JWT | **Done** |
 | Seed (roles + demo owner + demo company) | **Done** |
 | Blazor client auth (login page, protected route, logout, token persistence) | **Done** |
-| Company profile endpoint (`/api/companies/me`) — show company name | Next |
-| Parking branches, floors, spots | Planned |
+| Company profile endpoint (`/api/companies/me`) — tenant-scoped read | **Done** |
+| Parking branches, floors, spots | Next |
 | Employees & shifts | Planned |
 | Vehicle entries & statistics | Planned |
 
 **Feature Slice 1 (authentication) is complete end-to-end** — a seeded owner can log in from
 the Blazor UI, receives a JWT, and lands on a protected page that reads their identity, role,
-and company id from the token. Logging out clears the token and blocks protected pages again.
+and company name. Logging out clears the token and blocks protected pages again.
+
+**Feature Slice 2a (company profile)** adds the first tenant-scoped read: a protected
+`GET /api/companies/me` that resolves the company **from the token**, never from the request —
+so a user can only ever see their own company.
 
 > **Note on `ParkingEntry`:** an early prototype (a flat "vehicle entry log") exists in the
 > codebase from the project's first iteration. It is currently **dormant** and will be
@@ -94,6 +98,13 @@ and company id from the token. Logging out clears the token and blocks protected
 - **Blazor client authentication:** token persistence in `localStorage`, a custom
   `AuthenticationStateProvider` that reads claims from the JWT, an auth service/consumer pair,
   a login page, a protected home page, and logout — completing Feature Slice 1 end-to-end
+
+**August 2026 — Company profile & MVVM adoption (Feature Slice 2a)**
+- `CompanyDto`, a `GetCompanyId()` claims helper, `CompanyService`, and a `CompaniesController`
+  exposing `GET /api/companies/me` — the first tenant-scoped read (company resolved from the token)
+- Client `CompaniesConsumer` and a home page that shows the company **name** instead of its id
+- Adopted MVVM with manual view-model instantiation for pages (see Conventions)
+- Reworked the login screen with isolated (scoped) CSS — a neutral, colourless style
 
 ---
 
@@ -133,6 +144,13 @@ their HTTP conversation is type-safe.
 - **Client-side layering:** a **Consumer** owns pure HTTP communication with the API
   (e.g. `AuthConsumer`), while a **Service** owns orchestration and state
   (e.g. `AuthService`: token storage + auth-state notification). Each layer has one responsibility.
+- **MVVM with manual view-model instantiation:** pages follow MVVM — the `.razor` is a thin view,
+  and a plain `ViewModel` class holds the page's state and logic. The view model is **not**
+  registered in DI; the component creates it with `new` inside a lifecycle method, passing its
+  injected dependencies to the view model's constructor. This is deliberate: in Blazor
+  WebAssembly a DI `Scoped`/`Singleton` service lives for the whole app, so a DI-managed view
+  model would keep stale state across page visits. Manual instantiation ties the view model's
+  lifetime to the component, giving fresh state on every visit.
 - **Uniform responses:** every endpoint returns an `ApiResponse<T>` envelope
   (`Success` / `Message` / `Errors` / `Value`) via `.Ok(...)` / `.Fail(...)` factory methods.
 - **Typed actions:** controllers return `ActionResult<T>` so the success payload type is explicit
