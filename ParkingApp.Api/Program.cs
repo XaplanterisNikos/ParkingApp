@@ -5,6 +5,7 @@ using Microsoft.IdentityModel.Tokens;
 using ParkingApp.Api.Data;
 using ParkingApp.Api.Data.Entities;
 using ParkingApp.Api.Services.Auth;
+using ParkingApp.Api.Services.Companies;
 using ParkingApp.Api.Services.Parking;
 using System.Text;
 
@@ -74,6 +75,7 @@ builder.Services.AddControllers();
 // Application services, registered as scoped (one instance per request).
 builder.Services.AddScoped<ITokenService, TokenService>();          // issues JWTs at login
 builder.Services.AddScoped<IParkingEntryService, ParkingEntryService>();
+builder.Services.AddScoped<ICompanyService, CompanyService>();
 
 // --- API documentation (Swagger, Development only) ---
 builder.Services.AddEndpointsApiExplorer();

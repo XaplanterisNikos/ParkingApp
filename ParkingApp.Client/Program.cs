@@ -4,6 +4,7 @@ using Microsoft.AspNetCore.Components.Web;
 using Microsoft.AspNetCore.Components.WebAssembly.Hosting;
 using ParkingApp.Client;
 using ParkingApp.Client.Consumers.Auth;
+using ParkingApp.Client.Consumers.Companies;
 using ParkingApp.Client.Consumers.Parking;
 using ParkingApp.Client.Services.Auth;
 
@@ -17,6 +18,10 @@ builder.Services.AddScoped(sp => new HttpClient
 });
 
 builder.Services.AddScoped<IParkingEntriesConsumer, ParkingEntriesConsumer>();
+
+// Company API client (pure HTTP communication): calls the protected /api/companies
+// endpoints, attaching the stored JWT as a Bearer token.
+builder.Services.AddScoped<ICompaniesConsumer, CompaniesConsumer>();
 
 
 // --- Authentication / authorization (client-side) ---

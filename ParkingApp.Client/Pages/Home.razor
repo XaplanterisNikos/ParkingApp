@@ -1,32 +1,51 @@
 ﻿@page "/"
-@using Microsoft.AspNetCore.Authorization
-@using ParkingApp.Client.Services.Auth
 @attribute [Authorize]
+@using Microsoft.AspNetCore.Authorization
+@using ParkingApp.Client.Consumers.Companies
+@using ParkingApp.Client.Services.Auth
+@using ParkingApp.Client.ViewModels
+@inject ICompaniesConsumer CompaniesConsumer
+@inject IAuthService AuthService
+@inject NavigationManager Navigation
+@inject AuthenticationStateProvider AuthStateProvider
+
 
 <h1>Welcome</h1>
 
-<AuthorizeView>
-    <Authorized>
-        <p>You are signed in as <strong>@context.User.Identity?.Name</strong>.</p>
-        <p>Role: <strong>@GetClaim(context.User, System.Security.Claims.ClaimTypes.Role)</strong></p>
-        <p>Company id: <strong>@GetClaim(context.User, "companyId")</strong></p>
+@if (_viewModel is null || _viewModel.IsLoading)
+{
+    <p>Loading...</p>
+}
+else
+{
+    <AuthorizeView>
+        <Authorized>
+            @if (_viewModel.Company is not null)
+            {
+                <p>Signed in to <strong>@_viewModel.Company.Name</strong>.</p>
+            }
+            else
+            {
+                <p role="alert">@(_viewModel.Error ?? "Could not load your company.")</p>
+            }
 
-        <button @onclick="Logout">Sign out</button>
-    </Authorized>
-</AuthorizeView>
+            <hr />
 
+            <p>User: <strong>@_viewModel.UserName</strong></p>
+            <p>Role: <strong>@_viewModel.Role</strong></p>
+
+            <button @onclick="_viewModel.LogoutAsync">Sign out</button>
+        </Authorized>
+    </AuthorizeView>
+}
 @code {
-    [Inject] private IAuthService AuthService { get; set; } = default!;
-    [Inject] private NavigationManager Navigation { get; set; } = default!;
+    private HomeViewModel? _viewModel;
 
-    /// <summary>Reads a single claim value by type, or a placeholder if missing.</summary>
-    private static string GetClaim(System.Security.Claims.ClaimsPrincipal user, string type) =>
-        user.FindFirst(type)?.Value ?? "(not set)";
-
-    /// <summary>Logs out and returns to the login page.</summary>
-    private async Task Logout()
+    protected override async Task OnInitializedAsync()
     {
-        await AuthService.LogoutAsync();
-        Navigation.NavigateTo("login");
+        _viewModel = new HomeViewModel(
+            CompaniesConsumer, AuthService, AuthStateProvider, Navigation);
+        await _viewModel.InitializeAsync();
     }
+
 }
