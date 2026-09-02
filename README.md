@@ -120,6 +120,8 @@ other's, from the same table.
 - EF migration for the `Branches` table (+ index on `CompanyId`)
 - `BranchDto`/`CreateBranchRequest`, `BranchService`, `BranchesController` (GET list + POST create)
 - Second demo tenant (Thessaloniki) seeded to demonstrate isolation end-to-end
+- Client: `BranchesConsumer`, `BranchesViewModel`, and a `/branches` page (list + create form)
+  with isolated CSS; a "Manage branches" button on the home page — the slice is now end-to-end UI
 
 ---
 
