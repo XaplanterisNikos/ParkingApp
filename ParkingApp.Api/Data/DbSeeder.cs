@@ -15,6 +15,17 @@ public class DbSeeder
 	public const string EmployeeRole = "Employee";
 
 	/// <summary>
+	/// The demo tenants seeded on startup. Two separate companies (each with its own
+	/// owner) so that tenant isolation can actually be observed: neither owner should
+	/// ever see the other's data.
+	/// </summary>
+	private static readonly DemoTenant[] DemoTenants =
+	{
+		new("Athens Parking",       "owner@athens.test",       "Athens Owner",       "Owner123!"),
+		new("Thessaloniki Parking", "owner@thessaloniki.test", "Thessaloniki Owner", "Owner123!")
+	};
+
+	/// <summary>
 	/// Runs the full seed. Idempotent: safe to call on every startup — each step
 	/// checks for existence before creating, so nothing is duplicated.
 	/// </summary>
@@ -29,19 +40,16 @@ public class DbSeeder
 		await EnsureRoleAsync(roleManager, OwnerRole);
 		await EnsureRoleAsync(roleManager,EmployeeRole);
 
-		// A demo company must exist before its owner (the owner need its CompanyId)
-		var company = dbContext.Companies.FirstOrDefault(company => company.Name == "Athens Parking");
-		if(company is null)
+		// Each demo tenant: ensure the company exists, then its owner.
+		foreach (var tenant in DemoTenants)
 		{
-			company = new Company { Name = "Athens Parking" };
-			dbContext.Companies.Add(company);
-			await dbContext.SaveChangesAsync(); // saves + assigns the generated Guid Id
-		}
+			var company = await EnsureCompanyAsync(dbContext, tenant.CompanyName);
 
-		await EnsureOwnerAsync(userManager, company,
-			email: "owner@athens.test",
-			fullName: "Athens Owner",
-			password: "Owner123!");
+			await EnsureOwnerAsync(userManager, company,
+				email: tenant.OwnerEmail,
+				fullName: tenant.OwnerFullName,
+				password: tenant.OwnerPassword);
+		}
 	}
 
 	/// <summary>Creates a role if it does not already exist.</summary>
@@ -51,6 +59,21 @@ public class DbSeeder
 		{
 			await roleManager.CreateAsync(new IdentityRole(role));
 		}
+	}
+
+	/// <summary>Returns the company with the given name, creating it if missing.</summary>
+	private static async Task<Company> EnsureCompanyAsync(ParkingDbContext dbContext, string name)
+	{
+		var company = dbContext.Companies.FirstOrDefault(company => company.Name == name);
+
+		if (company is null)
+		{
+			company = new Company { Name = name };
+			dbContext.Companies.Add(company);
+			await dbContext.SaveChangesAsync(); // saves + assigns the generated Guid Id
+		}
+
+		return company;
 	}
 
 	/// <summary>Creates an owner user (if missing) and assigns the Owner role.</summary>
@@ -80,4 +103,11 @@ public class DbSeeder
 			throw new InvalidOperationException($"Failed to seed owner '{email}': {errors}");
 		}
 	}
+
+	/// <summary>A demo tenant to seed: one company and its owner.</summary>
+	private record DemoTenant(
+		string CompanyName,
+		string OwnerEmail,
+		string OwnerFullName,
+		string OwnerPassword);
 }

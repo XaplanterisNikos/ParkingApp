@@ -1,20 +1,29 @@
 ﻿using Microsoft.AspNetCore.Identity.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore;
 using ParkingApp.Api.Data.Entities;
+using ParkingApp.Api.MultiTenancy;
 
 namespace ParkingApp.Api.Data
 {
 	/// <summary>
 	/// EF Core database context. Extends <see cref="IdentityDbContext{TUser}"/> so that
 	/// ASP.NET Core Identity (users, roles, claims, tokens) is persisted alongside the
-	/// application's own entities such as <see cref="Company"/>.
+	/// application's own entities such as <see cref="Company"/> and <see cref="Branch"/>.
+	/// Tenant-owned entities are automatically filtered to the current tenant via a
+	/// global query filter driven by <see cref="ITenantProvider"/>.
 	/// </summary>
 	public class ParkingDbContext : IdentityDbContext<ApplicationUser>
 	{
-		public ParkingDbContext(DbContextOptions<ParkingDbContext> options) : base(options) { }
+		private readonly ITenantProvider _tenantProvider;
+		public ParkingDbContext(DbContextOptions<ParkingDbContext> options, ITenantProvider tenantProvider) : base(options)
+		{ 
+			_tenantProvider = tenantProvider;
+		}
 
 		/// <summary>Tenant companies. The root of the multi-tenant model.</summary>
 		public DbSet<Company> Companies => Set<Company>();
+		/// <summary>Parking branches, each owned by a company.</summary>
+		public DbSet<Branch> Branches => Set<Branch>();
 		public DbSet<ParkingEntry> ParkingEntries => Set<ParkingEntry>();
 
 		protected override void OnModelCreating(ModelBuilder modelBuilder)
@@ -44,6 +53,29 @@ namespace ParkingApp.Api.Data
 					.WithOne(user => user.Company)
 					.HasForeignKey(user => user.CompanyId)
 					.OnDelete(DeleteBehavior.Restrict);
+			});
+
+			modelBuilder.Entity<Branch>(entity =>
+			{
+				entity.ToTable("Branches");
+
+				entity.HasKey(branch => branch.Id);
+
+				entity.Property(branch => branch.Id)
+					.HasDefaultValueSql("NEWSEQUENTIALID()");
+
+				entity.Property(branch => branch.Name)
+					.IsRequired()
+					.HasMaxLength(200);
+
+				// Index on the tenant key: every query filters by CompanyId, so this keeps
+				// that filtering fast as the table grows.
+				entity.HasIndex(branch => branch.CompanyId);
+
+				// GLOBAL QUERY FILTER — the heart of tenant isolation.
+				// EF Core adds "WHERE CompanyId = <current tenant>" to EVERY query on Branch,
+				// automatically. A query can never accidentally return another tenant's data.
+				entity.HasQueryFilter(branch => branch.CompanyId == _tenantProvider.CurrentCompanyId);
 			});
 
 			modelBuilder.Entity<ParkingEntry>(entity =>

@@ -1,6 +1,62 @@
-@ParkingApp.Api_HostAddress = http://localhost:5065
+@host = https://localhost:7005
 
-GET {{ParkingApp.Api_HostAddress}}/weatherforecast/
-Accept: application/json
+### 1. Login as Athens owner — RUN THIS, then copy the "token" from the response
+POST {{host}}/api/auth/login
+Content-Type: application/json
 
-###
+{
+  "userName": "owner@athens.test",
+  "password": "Owner123!"
+}
+
+### 2. Login as Thessaloniki owner — RUN, then copy its token
+POST {{host}}/api/auth/login
+Content-Type: application/json
+
+{
+  "userName": "owner@thessaloniki.test",
+  "password": "Owner123!"
+}
+
+### 3.Copy Tokens
+@athens = PASTE_TOKEN_HERE
+@thess = PASTE_TOKEN_HERE
+
+### 1. Athens creates a branch
+POST {{host}}/api/branches
+Content-Type: application/json
+Authorization: Bearer {{athens}}
+
+{
+  "name": "Athens Κέντρο"
+}
+
+### 2. Athens creates a second branch
+POST {{host}}/api/branches
+Content-Type: application/json
+Authorization: Bearer {{athens}}
+
+{
+  "name": "Athens Πλατεία"
+}
+
+### 3. Athens lists — expect BOTH Athens branches
+GET {{host}}/api/branches
+Authorization: Bearer {{athens}}
+
+### 4. Thessaloniki creates a branch
+POST {{host}}/api/branches
+Content-Type: application/json
+Authorization: Bearer {{thess}}
+
+{
+  "name": "Thessaloniki Λιμάνι"
+}
+
+### 5. Thessaloniki lists — expect ONLY "Thessaloniki Λιμάνι"
+GET {{host}}/api/branches
+Authorization: Bearer {{thess}}
+
+### 6. Athens lists AGAIN — still ONLY the two Athens branches
+GET {{host}}/api/branches
+Authorization: Bearer {{athens}}

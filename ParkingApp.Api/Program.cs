@@ -4,7 +4,9 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
 using ParkingApp.Api.Data;
 using ParkingApp.Api.Data.Entities;
+using ParkingApp.Api.MultiTenancy;
 using ParkingApp.Api.Services.Auth;
+using ParkingApp.Api.Services.Branches;
 using ParkingApp.Api.Services.Companies;
 using ParkingApp.Api.Services.Parking;
 using System.Text;
@@ -76,6 +78,11 @@ builder.Services.AddControllers();
 builder.Services.AddScoped<ITokenService, TokenService>();          // issues JWTs at login
 builder.Services.AddScoped<IParkingEntryService, ParkingEntryService>();
 builder.Services.AddScoped<ICompanyService, CompanyService>();
+builder.Services.AddScoped<IBranchService, BranchService>();
+
+// Multi-tenancy: resolves the current tenant from the request's token.
+builder.Services.AddHttpContextAccessor();
+builder.Services.AddScoped<ITenantProvider, TenantProvider>();
 
 // --- API documentation (Swagger, Development only) ---
 builder.Services.AddEndpointsApiExplorer();
