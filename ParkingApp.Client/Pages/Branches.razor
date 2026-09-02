@@ -1,0 +1,79 @@
+﻿@page "/branches"
+@attribute [Authorize]
+@using Microsoft.AspNetCore.Authorization
+@using ParkingApp.Client.Consumers.Branches
+@using ParkingApp.Client.ViewModels
+@inject IBranchesConsumer BranchesConsumer
+
+<div class="branches-page">
+    <h1>Branches</h1>
+
+    @if (_viewModel is null)
+    {
+        <p class="muted">Loading...</p>
+    }
+    else
+    {
+        <!-- Create form (always visible) -->
+        <div class="create-card">
+            <label for="branchName">New branch</label>
+            <div class="create-row">
+                <input id="branchName" class="text-input"
+                       placeholder="e.g. Athens Κέντρο"
+                       @bind="_viewModel.NewBranchName"
+                       @bind:event="oninput"
+                       disabled="@_viewModel.IsCreating" />
+                <button class="btn" @onclick="_viewModel.CreateAsync"
+                        disabled="@_viewModel.IsCreating">
+                    @(_viewModel.IsCreating ? "Adding..." : "Add branch")
+                </button>
+            </div>
+            @if (!string.IsNullOrEmpty(_viewModel.CreateError))
+            {
+                <p class="error" role="alert">@_viewModel.CreateError</p>
+            }
+        </div>
+
+        <!-- List -->
+        @if (_viewModel.IsLoading)
+        {
+            <p class="muted">Loading branches...</p>
+        }
+        else if (!string.IsNullOrEmpty(_viewModel.LoadError))
+        {
+            <p class="error" role="alert">@_viewModel.LoadError</p>
+        }
+        else if (_viewModel.Branches.Count == 0)
+        {
+            <p class="muted">No branches yet. Add your first one above.</p>
+        }
+        else
+        {
+            <table class="branches-table">
+                <thead>
+                    <tr>
+                        <th>Name</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var branch in _viewModel.Branches)
+                    {
+                        <tr>
+                            <td>@branch.Name</td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        }
+    }
+</div>
+
+@code {
+    private BranchesViewModel? _viewModel;
+
+    protected override async Task OnInitializedAsync()
+    {
+        _viewModel = new BranchesViewModel(BranchesConsumer);
+        await _viewModel.InitializeAsync();
+    }
+}

@@ -69,6 +69,12 @@ public class HomeViewModel
 		_navigationManager.NavigateTo("login");
 	}
 
+	/// <summary>Navigates to the branches page.</summary>
+	public void GoToBranches()
+	{
+		_navigationManager.NavigateTo("branches");
+	}
+
 	#endregion
 
 	#region Helpers
