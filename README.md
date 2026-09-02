@@ -59,7 +59,8 @@ model from day one, not an afterthought.
 | Seed (roles + demo owner + demo company) | **Done** |
 | Blazor client auth (login page, protected route, logout, token persistence) | **Done** |
 | Company profile endpoint (`/api/companies/me`) — tenant-scoped read | **Done** |
-| Parking branches, floors, spots | Next |
+| Parking branches (CRUD backend) with tenant isolation | **Done** |
+| Parking floors & spots | Next |
 | Employees & shifts | Planned |
 | Vehicle entries & statistics | Planned |
 
@@ -70,6 +71,12 @@ and company name. Logging out clears the token and blocks protected pages again.
 **Feature Slice 2a (company profile)** adds the first tenant-scoped read: a protected
 `GET /api/companies/me` that resolves the company **from the token**, never from the request —
 so a user can only ever see their own company.
+
+**Feature Slice 2b (branches) enforces real multi-tenant isolation.** Branches are tenant-owned
+entities filtered by an **EF Core global query filter**: every read is automatically scoped to
+the caller's company (no manual `WHERE CompanyId = ...` anywhere), and writes set the company
+from the token. Verified with two demo owners — each sees only their own branches, never the
+other's, from the same table.
 
 > **Note on `ParkingEntry`:** an early prototype (a flat "vehicle entry log") exists in the
 > codebase from the project's first iteration. It is currently **dormant** and will be
@@ -105,6 +112,14 @@ so a user can only ever see their own company.
 - Client `CompaniesConsumer` and a home page that shows the company **name** instead of its id
 - Adopted MVVM with manual view-model instantiation for pages (see Conventions)
 - Reworked the login screen with isolated (scoped) CSS — a neutral, colourless style
+
+**August 2026 — Tenant-isolated branches (Feature Slice 2b)**
+- `TenantEntity` base class + `Branch` entity
+- `ITenantProvider`/`TenantProvider` resolving the tenant from the JWT
+- `ParkingDbContext` made tenant-aware with an EF Core global query filter on `Branch`
+- EF migration for the `Branches` table (+ index on `CompanyId`)
+- `BranchDto`/`CreateBranchRequest`, `BranchService`, `BranchesController` (GET list + POST create)
+- Second demo tenant (Thessaloniki) seeded to demonstrate isolation end-to-end
 
 ---
 
@@ -151,6 +166,11 @@ their HTTP conversation is type-safe.
   WebAssembly a DI `Scoped`/`Singleton` service lives for the whole app, so a DI-managed view
   model would keep stale state across page visits. Manual instantiation ties the view model's
   lifetime to the component, giving fresh state on every visit.
+- **Tenant isolation via EF Core global query filters:** tenant-owned entities inherit a
+  `TenantEntity` base (carrying `CompanyId`), and the `DbContext` applies a global query filter
+  (`HasQueryFilter`) driven by an `ITenantProvider` that reads the company id from the request's
+  token. Every read is scoped to the caller's tenant automatically — isolation is structural, not
+  a `WHERE` clause you must remember. Writes set `CompanyId` explicitly from the provider.
 - **Uniform responses:** every endpoint returns an `ApiResponse<T>` envelope
   (`Success` / `Message` / `Errors` / `Value`) via `.Ok(...)` / `.Fail(...)` factory methods.
 - **Typed actions:** controllers return `ActionResult<T>` so the success payload type is explicit
@@ -231,14 +251,17 @@ exposes Swagger UI where you can try the login endpoint.
 
 ### 5. Log in (demo credentials)
 
-The seed creates one demo owner you can use immediately:
+The seed creates **two** demo owners, each belonging to a **different** company. This lets you
+observe tenant isolation for yourself — log in as one, create a branch, then log in as the other
+and confirm you cannot see it.
 
-| Field    | Value               |
-| -------- | ------------------- |
-| Username | `owner@athens.test` |
-| Password | *(see `Data/DbSeeder.cs`)* |
+| Company | Username | Password |
+| --- | --- | --- |
+| Athens Parking | `owner@athens.test` | `Owner123!` |
+| Thessaloniki Parking | `owner@thessaloniki.test` | `Owner123!` |
 
-Call `POST /api/auth/login` with these credentials and you'll receive a signed JWT.
+Call `POST /api/auth/login` with either set of credentials to receive a signed JWT, then send it
+as a `Bearer` token to the protected endpoints (e.g. `GET`/`POST /api/branches`).
 
 ---
 
