@@ -19,8 +19,8 @@ Content-Type: application/json
 }
 
 ### 3.Copy Tokens
-@athens = PASTE_TOKEN_HERE
-@thess = PASTE_TOKEN_HERE
+@athens = eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiI1NmY3ZjJiMi00NDNmLTQwMTgtYTU1NS05MDQ2MGRhODJlOTYiLCJodHRwOi8vc2NoZW1hcy54bWxzb2FwLm9yZy93cy8yMDA1LzA1L2lkZW50aXR5L2NsYWltcy9uYW1laWRlbnRpZmllciI6IjU2ZjdmMmIyLTQ0M2YtNDAxOC1hNTU1LTkwNDYwZGE4MmU5NiIsInVuaXF1ZV9uYW1lIjoib3duZXJAYXRoZW5zLnRlc3QiLCJjb21wYW55SWQiOiI2Nzg1Y2Y1Mi03Y2E0LWYxMTEtYTgxNS1lYzc1MGMzMTNhZWYiLCJodHRwOi8vc2NoZW1hcy5taWNyb3NvZnQuY29tL3dzLzIwMDgvMDYvaWRlbnRpdHkvY2xhaW1zL3JvbGUiOiJPd25lciIsImV4cCI6MTc4ODQ2OTM3OSwiaXNzIjoiUGFya2luZ0FwcC5BcGkiLCJhdWQiOiJQYXJraW5nQXBwLkNsaWVudCJ9.MGgGZ4ujeLEkAyMQrDkLzfO4LECIf7UaVL4hHlw0gx0
+@thess = eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJmMzE0YzJjMC05ZTZjLTRiYjMtYWViMi05ZjE2MTk2MThjYWIiLCJodHRwOi8vc2NoZW1hcy54bWxzb2FwLm9yZy93cy8yMDA1LzA1L2lkZW50aXR5L2NsYWltcy9uYW1laWRlbnRpZmllciI6ImYzMTRjMmMwLTllNmMtNGJiMy1hZWIyLTlmMTYxOTYxOGNhYiIsInVuaXF1ZV9uYW1lIjoib3duZXJAdGhlc3NhbG9uaWtpLnRlc3QiLCJjb21wYW55SWQiOiIxMzQ4N2E1ZC04YmE1LWYxMTEtYTgxNS1lYzc1MGMzMTNhZWYiLCJodHRwOi8vc2NoZW1hcy5taWNyb3NvZnQuY29tL3dzLzIwMDgvMDYvaWRlbnRpdHkvY2xhaW1zL3JvbGUiOiJPd25lciIsImV4cCI6MTc4ODQ2OTU5MywiaXNzIjoiUGFya2luZ0FwcC5BcGkiLCJhdWQiOiJQYXJraW5nQXBwLkNsaWVudCJ9.XapiZXCGKxT4MoZLI6mqZxzDJEq55UVFTWFgSdOZe94
 
 ### 1. Athens creates a branch
 POST {{host}}/api/branches
@@ -60,3 +60,24 @@ Authorization: Bearer {{thess}}
 ### 6. Athens lists AGAIN — still ONLY the two Athens branches
 GET {{host}}/api/branches
 Authorization: Bearer {{athens}}
+
+### Get Athens branches — copy a branchId from the response
+GET {{host}}/api/branches
+Authorization: Bearer {{athens}}
+
+### Create a floor in that Athens branch (put the branchId in the URL)
+POST {{host}}/api/branches/0c9d9f59-17a7-f111-a815-ec750c313aef/floors
+Content-Type: application/json
+Authorization: Bearer {{athens}}
+
+{
+  "name": "Υπόγειο"
+}
+
+### List floors of that Athens branch
+GET {{host}}/api/branches/0c9d9f59-17a7-f111-a815-ec750c313aef/floors
+Authorization: Bearer {{athens}}
+
+### ISOLATION TEST: Thessaloniki tries the SAME Athens branchId — expect EMPTY
+GET {{host}}/api/branches/0c9d9f59-17a7-f111-a815-ec750c313aef/floors
+Authorization: Bearer {{thess}}

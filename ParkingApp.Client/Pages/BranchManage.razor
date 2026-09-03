@@ -1,0 +1,74 @@
+﻿@page "/branches/{BranchId:guid}"
+@attribute [Authorize]
+@using Microsoft.AspNetCore.Authorization
+@using ParkingApp.Client.Consumers.Branches
+@using ParkingApp.Client.Consumers.Floors
+@using ParkingApp.Client.ViewModels
+@inject IBranchesConsumer BranchesConsumer
+@inject IFloorsConsumer FloorsConsumer
+
+@if (_viewModel is null || _viewModel.IsLoading)
+{
+    <p class="muted">Loading...</p>
+}
+else if (!string.IsNullOrEmpty(_viewModel.LoadError))
+{
+    <p class="error" role="alert">@_viewModel.LoadError</p>
+}
+else
+{
+    <div class="manage-page">
+        <a href="branches" class="back-link">← Back to branches</a>
+
+        <h1>@_viewModel.Branch!.Name</h1>
+
+        <section class="section">
+            <h2>Floors</h2>
+
+            <div class="create-row">
+                <input class="text-input" placeholder="e.g. Υπόγειο"
+                       @bind="_viewModel.NewFloorName" @bind:event="oninput"
+                       disabled="@_viewModel.IsCreatingFloor" />
+                <button class="btn" @onclick="_viewModel.CreateFloorAsync"
+                        disabled="@_viewModel.IsCreatingFloor">
+                    @(_viewModel.IsCreatingFloor ? "Adding..." : "Add floor")
+                </button>
+            </div>
+            @if (!string.IsNullOrEmpty(_viewModel.CreateFloorError))
+            {
+                <p class="error" role="alert">@_viewModel.CreateFloorError</p>
+            }
+
+            @if (_viewModel.Floors.Count == 0)
+            {
+                <p class="muted">No floors yet. Add the first one above.</p>
+            }
+            else
+            {
+                <table class="data-table">
+                    <thead>
+                        <tr><th>Floor</th></tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var floor in _viewModel.Floors)
+                        {
+                            <tr><td>@floor.Name</td></tr>
+                        }
+                    </tbody>
+                </table>
+            }
+        </section>
+    </div>
+}
+
+@code {
+    [Parameter] public Guid BranchId { get; set; }
+
+    private BranchManageViewModel? _viewModel;
+
+    protected override async Task OnInitializedAsync()
+    {
+        _viewModel = new BranchManageViewModel(BranchesConsumer, FloorsConsumer, BranchId);
+        await _viewModel.InitializeAsync();
+    }
+}

@@ -29,6 +29,19 @@ public class BranchesController : ControllerBase
 		return Ok(ApiResponse<List<BranchDto>>.Ok(branches));
 	}
 
+	/// <summary>Returns a single branch by id.</summary>
+	[HttpGet("{id:guid}")]
+	public async Task<ActionResult<ApiResponse<BranchDto>>> GetById([FromRoute] Guid id)
+	{
+		var branch = await _branchService.GetByIdAsync(id);
+		if(branch is null)
+		{
+			return NotFound(ApiResponse<BranchDto>.Fail("Branch not found."));
+		}
+
+		return Ok(ApiResponse<BranchDto>.Ok(branch));
+	}
+
 	/// <summary>Creates a new branch for the current tenant.</summary>
 	/// <param name="request">The branch to create.</param>
 	[HttpPost]

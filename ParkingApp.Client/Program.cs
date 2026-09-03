@@ -6,6 +6,7 @@ using ParkingApp.Client;
 using ParkingApp.Client.Consumers.Auth;
 using ParkingApp.Client.Consumers.Branches;
 using ParkingApp.Client.Consumers.Companies;
+using ParkingApp.Client.Consumers.Floors;
 using ParkingApp.Client.Consumers.Parking;
 using ParkingApp.Client.Services.Auth;
 
@@ -26,6 +27,9 @@ builder.Services.AddScoped<ICompaniesConsumer, CompaniesConsumer>();
 
 // Branches API client (pure HTTP communication): calls the protected /api/branches endpoints.
 builder.Services.AddScoped<IBranchesConsumer, BranchesConsumer>();
+
+// Floors API client (nested under branches).
+builder.Services.AddScoped<IFloorsConsumer, FloorsConsumer>();
 
 
 // --- Authentication / authorization (client-side) ---

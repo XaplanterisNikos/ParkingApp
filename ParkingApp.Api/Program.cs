@@ -8,6 +8,7 @@ using ParkingApp.Api.MultiTenancy;
 using ParkingApp.Api.Services.Auth;
 using ParkingApp.Api.Services.Branches;
 using ParkingApp.Api.Services.Companies;
+using ParkingApp.Api.Services.Floors;
 using ParkingApp.Api.Services.Parking;
 using System.Text;
 
@@ -79,6 +80,7 @@ builder.Services.AddScoped<ITokenService, TokenService>();          // issues JW
 builder.Services.AddScoped<IParkingEntryService, ParkingEntryService>();
 builder.Services.AddScoped<ICompanyService, CompanyService>();
 builder.Services.AddScoped<IBranchService, BranchService>();
+builder.Services.AddScoped<IFloorService, FloorService>();
 
 // Multi-tenancy: resolves the current tenant from the request's token.
 builder.Services.AddHttpContextAccessor();

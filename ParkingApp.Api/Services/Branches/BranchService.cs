@@ -52,4 +52,14 @@ public class BranchService : IBranchService
 			})
 			.ToListAsync();
 	}
+
+	/// <inheritdoc />
+	public async Task<BranchDto?> GetByIdAsync(Guid branchId)
+	{
+		return await _dbContext.Branches
+			.AsNoTracking()
+			.Where(branch=> branch.Id == branchId)
+			.Select(branch=>new BranchDto { Name = branch.Name,Id = branch.Id })
+			.FirstOrDefaultAsync();
+	}
 }

@@ -24,6 +24,8 @@ namespace ParkingApp.Api.Data
 		public DbSet<Company> Companies => Set<Company>();
 		/// <summary>Parking branches, each owned by a company.</summary>
 		public DbSet<Branch> Branches => Set<Branch>();
+		/// <summary>Floors within branches, each owned by a company.</summary>
+		public DbSet<Floor> Floors => Set<Floor>();
 		public DbSet<ParkingEntry> ParkingEntries => Set<ParkingEntry>();
 
 		protected override void OnModelCreating(ModelBuilder modelBuilder)
@@ -103,6 +105,27 @@ namespace ParkingApp.Api.Data
 
 				entity.Property(parkingEntry => parkingEntry.CreatedAt)
 					.IsRequired();
+			});
+
+			modelBuilder.Entity<Floor>(entity =>
+			{
+				entity.ToTable("Floors");
+				entity.HasKey(floor => floor.Id);
+				entity.Property(floor => floor.Id).HasDefaultValueSql("NEWSEQUENTIALID()");
+				entity.Property(floor => floor.Name).IsRequired().HasMaxLength(100);
+
+				// Index on the tenant key — the global filter uses CompanyId on every query.
+				entity.HasIndex(floor => floor.CompanyId);
+
+				// A branch has many floors; a floor belongs to one branch.
+				// Restrict delete: you can't delete a branch that still has floors.
+				entity.HasOne<Branch>()
+					.WithMany()
+					.HasForeignKey(floor => floor.BranchId)
+					.OnDelete(DeleteBehavior.Restrict);
+
+				// Same global query filter pattern as Branch — automatic tenant isolation.
+				entity.HasQueryFilter(floor => floor.CompanyId == _tenantProvider.CurrentCompanyId);
 			});
 
 		}

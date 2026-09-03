@@ -6,6 +6,8 @@
 @inject IBranchesConsumer BranchesConsumer
 
 <div class="branches-page">
+    <a href="" class="back-link">← Home</a>
+
     <h1>Branches</h1>
 
     @if (_viewModel is null)
@@ -59,7 +61,7 @@
                     @foreach (var branch in _viewModel.Branches)
                     {
                         <tr>
-                            <td>@branch.Name</td>
+                            <a href="@($"branches/{branch.Id}")">@branch.Name</a>
                         </tr>
                     }
                 </tbody>

@@ -57,4 +57,14 @@ public class BranchesConsumer : IBranchesConsumer
 		}
 	}
 
+	/// <inheritdoc />
+	public async Task<ApiResponse<BranchDto>?> GetByIdAsync(Guid branchId)
+	{
+		var request = new HttpRequestMessage(HttpMethod.Get, $"api/branches/{branchId}");
+		await AttachTokenAsync(request);
+
+		var response = await _httpClient.SendAsync(request);
+		return await response.Content.ReadFromJsonAsync<ApiResponse<BranchDto>>();
+	}
+
 }
