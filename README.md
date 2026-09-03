@@ -59,8 +59,9 @@ model from day one, not an afterthought.
 | Seed (roles + demo owner + demo company) | **Done** |
 | Blazor client auth (login page, protected route, logout, token persistence) | **Done** |
 | Company profile endpoint (`/api/companies/me`) — tenant-scoped read | **Done** |
-| Parking branches (CRUD backend) with tenant isolation | **Done** |
-| Parking floors & spots | Next |
+| Parking branches (CRUD backend + UI) with tenant isolation | **Done** |
+| Branch management page + floors (nested, tenant-isolated) | **Done** |
+| Parking spots (within floors) | Next |
 | Employees & shifts | Planned |
 | Vehicle entries & statistics | Planned |
 
@@ -77,6 +78,13 @@ entities filtered by an **EF Core global query filter**: every read is automatic
 the caller's company (no manual `WHERE CompanyId = ...` anywhere), and writes set the company
 from the token. Verified with two demo owners — each sees only their own branches, never the
 other's, from the same table.
+
+**Feature Slice 2c (floors)** adds the branch management hub. Each branch name links to a
+`/branches/{id}` page where the owner manages the branch's **floors**. Floors are nested under
+branches (`/api/branches/{branchId}/floors`) and combine two filters: the tenant filter (automatic,
+via the global query filter) and the branch filter (explicit). Isolation holds through the
+relationship too — a user passing another tenant's `branchId` gets an empty result, with no
+explicit ownership check needed.
 
 > **Note on `ParkingEntry`:** an early prototype (a flat "vehicle entry log") exists in the
 > codebase from the project's first iteration. It is currently **dormant** and will be
@@ -122,6 +130,15 @@ other's, from the same table.
 - Second demo tenant (Thessaloniki) seeded to demonstrate isolation end-to-end
 - Client: `BranchesConsumer`, `BranchesViewModel`, and a `/branches` page (list + create form)
   with isolated CSS; a "Manage branches" button on the home page — the slice is now end-to-end UI
+
+**August 2026 — Floors & branch management hub (Feature Slice 2c)**
+- `Floor` entity (tenant-owned, belongs to a branch) + EF migration for the `Floors` table
+- `FloorService` + nested `FloorsController` (`/api/branches/{branchId}/floors`) combining the
+  automatic tenant filter with an explicit branch filter
+- `GET /api/branches/{id}` to fetch a single branch
+- Client: `FloorsConsumer`, `BranchManageViewModel`, and a `/branches/{id}` management page
+  (branch name links to it) where the owner lists and creates floors
+- Basic navigation links (Home ⇄ Branches ⇄ branch management)
 
 ---
 
