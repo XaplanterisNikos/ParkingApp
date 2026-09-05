@@ -8,16 +8,26 @@ using ParkingApp.Client.Consumers.Branches;
 using ParkingApp.Client.Consumers.Companies;
 using ParkingApp.Client.Consumers.Floors;
 using ParkingApp.Client.Consumers.Parking;
+using ParkingApp.Client.Consumers.Spots;
 using ParkingApp.Client.Services.Auth;
 
 var builder = WebAssemblyHostBuilder.CreateDefault(args);
 builder.RootComponents.Add<App>("#app");
 builder.RootComponents.Add<HeadOutlet>("head::after");
 
-builder.Services.AddScoped(sp => new HttpClient
+// Register the handler itself.
+builder.Services.AddScoped<AuthTokenHandler>();
+
+// Configure an HttpClient that runs every request through the handler.
+builder.Services.AddHttpClient("Api", client =>
 {
-	BaseAddress = new Uri("https://localhost:7005/")
-});
+	client.BaseAddress = new Uri("https://localhost:7005/");
+})
+.AddHttpMessageHandler<AuthTokenHandler>();
+
+// Consumers get this configured client.
+builder.Services.AddScoped(sp =>
+	sp.GetRequiredService<IHttpClientFactory>().CreateClient("Api"));
 
 builder.Services.AddScoped<IParkingEntriesConsumer, ParkingEntriesConsumer>();
 
@@ -30,6 +40,9 @@ builder.Services.AddScoped<IBranchesConsumer, BranchesConsumer>();
 
 // Floors API client (nested under branches).
 builder.Services.AddScoped<IFloorsConsumer, FloorsConsumer>();
+
+// Spots API client (nested under floors).
+builder.Services.AddScoped<ISpotsConsumer, SpotsConsumer>();
 
 
 // --- Authentication / authorization (client-side) ---

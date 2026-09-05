@@ -10,6 +10,7 @@ using ParkingApp.Api.Services.Branches;
 using ParkingApp.Api.Services.Companies;
 using ParkingApp.Api.Services.Floors;
 using ParkingApp.Api.Services.Parking;
+using ParkingApp.Api.Services.Spots;
 using System.Text;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -81,6 +82,7 @@ builder.Services.AddScoped<IParkingEntryService, ParkingEntryService>();
 builder.Services.AddScoped<ICompanyService, CompanyService>();
 builder.Services.AddScoped<IBranchService, BranchService>();
 builder.Services.AddScoped<IFloorService, FloorService>();
+builder.Services.AddScoped<ISpotService, SpotService>();
 
 // Multi-tenancy: resolves the current tenant from the request's token.
 builder.Services.AddHttpContextAccessor();

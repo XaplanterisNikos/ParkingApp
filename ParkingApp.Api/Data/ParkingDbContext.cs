@@ -27,6 +27,8 @@ namespace ParkingApp.Api.Data
 		/// <summary>Floors within branches, each owned by a company.</summary>
 		public DbSet<Floor> Floors => Set<Floor>();
 		public DbSet<ParkingEntry> ParkingEntries => Set<ParkingEntry>();
+		/// <summary>Parking spots on floors, each owned by a company.</summary>
+		public DbSet<ParkingSpot> ParkingSpots => Set<ParkingSpot>();
 
 		protected override void OnModelCreating(ModelBuilder modelBuilder)
 		{
@@ -126,6 +128,35 @@ namespace ParkingApp.Api.Data
 
 				// Same global query filter pattern as Branch — automatic tenant isolation.
 				entity.HasQueryFilter(floor => floor.CompanyId == _tenantProvider.CurrentCompanyId);
+			});
+
+			modelBuilder.Entity<ParkingSpot>(entity =>
+			{
+				entity.ToTable("ParkingSpots");
+
+				entity.HasKey(spot => spot.Id);
+
+				entity.Property(spot => spot.Id)
+					.HasDefaultValueSql("NEWSEQUENTIALID()");
+
+				entity.Property(spot => spot.Number)
+					.IsRequired()
+					.HasMaxLength(20);
+
+				// Store the enum as int (the default) — compact and fast.
+				entity.Property(spot => spot.Size)
+					.HasConversion<int>();
+
+				entity.HasIndex(spot => spot.CompanyId);
+
+				// A floor has many spots; a spot belongs to one floor.
+				entity.HasOne<Floor>()
+					.WithMany()
+					.HasForeignKey(spot => spot.FloorId)
+					.OnDelete(DeleteBehavior.Restrict);
+
+				// Same automatic tenant isolation as the other tenant entities.
+				entity.HasQueryFilter(spot => spot.CompanyId == _tenantProvider.CurrentCompanyId);
 			});
 
 		}

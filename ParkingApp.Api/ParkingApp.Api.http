@@ -81,3 +81,25 @@ Authorization: Bearer {{athens}}
 ### ISOLATION TEST: Thessaloniki tries the SAME Athens branchId — expect EMPTY
 GET {{host}}/api/branches/0c9d9f59-17a7-f111-a815-ec750c313aef/floors
 Authorization: Bearer {{thess}}
+
+### Get floors of an Athens branch — copy a floorId
+GET {{host}}/api/branches/PASTE_ATHENS_BRANCH_ID/floors
+Authorization: Bearer {{athens}}
+
+### Create a spot on that floor
+POST {{host}}/api/floors/PASTE_FLOOR_ID/spots
+Content-Type: application/json
+Authorization: Bearer {{athens}}
+
+{
+  "number": "A1",
+  "size": 2
+}
+
+### List spots of that floor
+GET {{host}}/api/floors/PASTE_FLOOR_ID/spots
+Authorization: Bearer {{athens}}
+
+### ISOLATION: Thessaloniki tries the same Athens floorId — expect EMPTY
+GET {{host}}/api/floors/PASTE_FLOOR_ID/spots
+Authorization: Bearer {{thess}}
