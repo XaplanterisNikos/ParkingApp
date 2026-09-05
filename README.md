@@ -60,9 +60,9 @@ model from day one, not an afterthought.
 | Blazor client auth (login page, protected route, logout, token persistence) | **Done** |
 | Company profile endpoint (`/api/companies/me`) — tenant-scoped read | **Done** |
 | Parking branches (CRUD backend + UI) with tenant isolation | **Done** |
-| Branch management page + floors (nested, tenant-isolated) | **Done** |
-| Parking spots (within floors) | Next |
-| Employees & shifts | Planned |
+| Branch management page + floors (typed, nested, tenant-isolated) | **Done** |
+| Parking spots — bulk auto-generation with structured naming | **Done** |
+| Employees & shifts | Next |
 | Vehicle entries & statistics | Planned |
 
 **Feature Slice 1 (authentication) is complete end-to-end** — a seeded owner can log in from
@@ -84,7 +84,15 @@ other's, from the same table.
 branches (`/api/branches/{branchId}/floors`) and combine two filters: the tenant filter (automatic,
 via the global query filter) and the branch filter (explicit). Isolation holds through the
 relationship too — a user passing another tenant's `branchId` gets an empty result, with no
-explicit ownership check needed.
+explicit ownership check needed. Floors are chosen from a fixed `FloorType` enum (each with a code
+and display name), unique per branch — enforced both in the UI (the dropdown hides used types) and
+in the database (a unique index on `(BranchId, Type)`).
+
+**Feature Slice 2c+ (spots) — bulk generation.** Rather than entering hundreds of spots by hand,
+the owner picks a size and a count, and spots are generated automatically with structured numbers:
+`{floorCode}{sizeCode}{n}` (e.g. `AC1…AC40` for cars on floor A). Numbering continues from any
+existing spots of that size, and the management page shows a per-size summary rather than every
+individual spot. This completes the static structure of a parking: Company → Branch → Floor → Spot.
 
 > **Note on `ParkingEntry`:** an early prototype (a flat "vehicle entry log") exists in the
 > codebase from the project's first iteration. It is currently **dormant** and will be
