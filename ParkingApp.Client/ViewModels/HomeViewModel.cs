@@ -62,19 +62,6 @@ public class HomeViewModel
 		await LoadCompanyAsync();
 	}
 
-	/// <summary>Logs the user out and returns to the login page.</summary>
-	public async Task LogoutAsync()
-	{
-		await _authService.LogoutAsync();
-		_navigationManager.NavigateTo("login");
-	}
-
-	/// <summary>Navigates to the branches page.</summary>
-	public void GoToBranches()
-	{
-		_navigationManager.NavigateTo("branches");
-	}
-
 	#endregion
 
 	#region Helpers

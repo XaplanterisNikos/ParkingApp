@@ -16,29 +16,13 @@
 {
     <p>Loading...</p>
 }
+else if (_viewModel.Company is not null)
+{
+    <p>Signed in to <strong>@_viewModel.Company.Name</strong>.</p>
+}
 else
 {
-    <AuthorizeView>
-        <Authorized>
-            @if (_viewModel.Company is not null)
-            {
-                <p>Signed in to <strong>@_viewModel.Company.Name</strong>.</p>
-            }
-            else
-            {
-                <p role="alert">@(_viewModel.Error ?? "Could not load your company.")</p>
-            }
-
-            <hr />
-
-            <p>User: <strong>@_viewModel.UserName</strong></p>
-            <p>Role: <strong>@_viewModel.Role</strong></p>
-
-
-            <button @onclick="_viewModel.GoToBranches">Manage branches</button>
-            <button @onclick="_viewModel.LogoutAsync">Sign out</button>
-        </Authorized>
-    </AuthorizeView>
+    <p role="alert">@(_viewModel.Error ?? "Could not load your company.")</p>
 }
 @code {
     private HomeViewModel? _viewModel;

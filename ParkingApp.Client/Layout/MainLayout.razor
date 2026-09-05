@@ -1,3 +1,48 @@
 ﻿@inherits LayoutComponentBase
+@using Microsoft.AspNetCore.Components.Authorization
+@using ParkingApp.Client.Consumers.Companies
+@using ParkingApp.Client.Services.Auth
+@using ParkingApp.Client.ViewModels
+@inject ICompaniesConsumer CompaniesConsumer
+@inject IAuthService AuthService
+@inject AuthenticationStateProvider AuthStateProvider
+@inject NavigationManager Navigation
 
-@Body
+<AuthorizeView>
+    <Authorized>
+        <nav class="navbar">
+            <div class="nav-left">
+                <a href="" class="brand">ParkingApp</a>
+                <a href="branches" class="nav-link">Branches</a>
+            </div>
+            <div class="nav-right">
+                @if (_viewModel is not null)
+                {
+                    <span class="nav-user">
+                        @_viewModel.UserName
+                        @if (!string.IsNullOrEmpty(_viewModel.CompanyName))
+                        {
+                            <span class="nav-company">· @_viewModel.CompanyName</span>
+                        }
+                    </span>
+                    <button class="nav-logout" @onclick="_viewModel.LogoutAsync">Sign out</button>
+                }
+            </div>
+        </nav>
+    </Authorized>
+</AuthorizeView>
+
+<main class="page-content">
+    @Body
+</main>
+
+@code {
+    private MainLayoutViewModel? _viewModel;
+
+    protected override async Task OnInitializedAsync()
+    {
+        _viewModel = new MainLayoutViewModel(
+            CompaniesConsumer, AuthService, AuthStateProvider, Navigation);
+        await _viewModel.InitializeAsync();
+    }
+}

@@ -1,0 +1,62 @@
+﻿.navbar {
+	display: flex;
+	justify-content: space-between;
+	align-items: center;
+	padding: 0.75rem 1.5rem;
+	background: #1a1a1a;
+	color: #fff;
+}
+
+.nav-left, .nav-right {
+	display: flex;
+	align-items: center;
+	gap: 1.25rem;
+}
+
+.brand {
+	font-weight: 700;
+	font-size: 1.05rem;
+	color: #fff;
+	text-decoration: none;
+}
+
+.nav-link {
+	color: #d1d5db;
+	text-decoration: none;
+	font-size: 0.9rem;
+}
+
+	.nav-link:hover {
+		color: #fff;
+	}
+
+.nav-user {
+	font-size: 0.85rem;
+	color: #d1d5db;
+}
+
+.nav-company {
+	color: #9ca3af;
+}
+
+.nav-logout {
+	background: transparent;
+	border: 1px solid #555;
+	color: #fff;
+	padding: 0.35rem 0.8rem;
+	border-radius: 6px;
+	font-size: 0.85rem;
+	cursor: pointer;
+	transition: background 0.15s, border-color 0.15s;
+}
+
+	.nav-logout:hover {
+		background: #333;
+		border-color: #777;
+	}
+
+.page-content {
+	padding: 1.5rem;
+	max-width: 900px;
+	margin: 0 auto;
+}
