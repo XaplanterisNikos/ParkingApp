@@ -309,6 +309,21 @@ while staying close to the intended architecture.
 
 ---
 
+## ⚡ Performance considerations
+
+- **Tenant and parent-key indexing.** Every tenant-owned table is indexed on `CompanyId`, and
+  child tables (floors, spots) are additionally indexed on their parent key (`BranchId`, `FloorId`).
+  So queries stay fast regardless of table size — a spot lookup filters straight to one floor's
+  rows rather than scanning the whole table. At realistic scale (e.g. thousands of parkings ×
+  ~150 spots = hundreds of thousands of spot rows) this is comfortably within a relational
+  database's normal range.
+- **Read-only queries use `AsNoTracking`** and project straight to DTOs, so only the needed
+  columns are fetched and no change-tracking overhead is paid on list reads.
+- **The high-volume table will be the movement log** (vehicle entries/exits), not the static
+  spot catalogue. That table will use pagination when it lands, and could be archived at scale.
+
+---
+
 ## 🔐 Security notes
 
 - Secrets (connection string, JWT key) are kept out of source control via User Secrets.
