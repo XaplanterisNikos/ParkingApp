@@ -7,6 +7,6 @@ public class FloorDto
 {
 	/// <summary>The floor's unique identifier.</summary>
 	public Guid Id { get; set; }
-	/// <summary>The floor's display name.</summary>
-	public required string Name { get; set; }
+	/// <summary>The floor type (Ground, First, ...).</summary>
+	public FloorType Type { get; set; }
 }

@@ -39,6 +39,13 @@ public class FloorsController : ControllerBase
 		[FromBody] CreateFloorRequest request)
 	{
 		var floor = await _floorService.CreateAsync(branchId, request);
+
+		if (floor is null)
+		{
+			// Service returned null → that floor type already exists in this branch.
+			return Conflict(ApiResponse<FloorDto>.Fail("This floor already exists in the branch."));
+		}
+
 		return Ok(ApiResponse<FloorDto>.Ok(floor));
 	}
 }

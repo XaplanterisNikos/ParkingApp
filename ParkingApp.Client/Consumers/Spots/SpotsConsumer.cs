@@ -27,12 +27,13 @@ public class SpotsConsumer : ISpotsConsumer
 	}
 
 	/// <inheritdoc />
-	public async Task<ApiResponse<SpotDto>?> CreateAsync(Guid floorId, CreateSpotRequest request)
+	public async Task<ApiResponse<List<SpotDto>>?> GenerateAsync(
+		Guid floorId, GenerateSpotsRequest request)
 	{
 		var response = await _httpClient
-			.PostAsJsonAsync($"api/floors/{floorId}/spots", request);
+			.PostAsJsonAsync($"api/floors/{floorId}/spots/generate", request);
 
-		return await response.Content.ReadFromJsonAsync<ApiResponse<SpotDto>>();
+		return await response.Content.ReadFromJsonAsync<ApiResponse<List<SpotDto>>>();
 	}
 
 }

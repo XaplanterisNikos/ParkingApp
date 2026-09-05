@@ -2,6 +2,7 @@
 using ParkingApp.Api.Data;
 using ParkingApp.Api.Data.Entities;
 using ParkingApp.Api.MultiTenancy;
+using ParkingApp.Shared.Floors;
 using ParkingApp.Shared.Spots;
 
 namespace ParkingApp.Api.Services.Spots;
@@ -22,28 +23,51 @@ public class SpotService : ISpotService
 	}
 
 	/// <inheritdoc />
-	public async Task<SpotDto> CreateAsync(Guid floorId, CreateSpotRequest request)
+	public async Task<List<SpotDto>?> GenerateAsync(Guid floorId, GenerateSpotsRequest request)
 	{
 		var companyId = _tenantProvider.CurrentCompanyId
-		   ?? throw new InvalidOperationException("No tenant context for creating a spot.");
+			?? throw new InvalidOperationException("No tenant context for generating spots.");
 
-		var spot = new ParkingSpot
+		// 1. Find the floor (tenant filter makes a foreign floor come back null).
+		var floor = await _dbContext.Floors
+			.FirstOrDefaultAsync(f => f.Id == floorId);
+
+		if (floor is null)
 		{
-			Number = request.Number,
-			Size = request.Size,
-			FloorId = floorId,          // from the route
-			CompanyId = companyId       // from the token
-		};
+			return null; // floor not found for this tenant
+		}
 
-		_dbContext.ParkingSpots.Add(spot);
-		await _dbContext.SaveChangesAsync();
+		// 2. Count existing spots of this size to continue numbering.
+		var existingCount = await _dbContext.ParkingSpots
+			.CountAsync(spot => spot.FloorId == floorId && spot.Size == request.Size);
 
-		return new SpotDto
+		// 3. Build the number prefix: floor code + size code (e.g. "AC").
+		var prefix = FloorTypeInfo.CodeOf(floor.Type) + SpotSizeInfo.CodeOf(request.Size);
+
+		// 4. Generate the batch.
+		var newSpots = new List<ParkingSpot>();
+		for (var i = 1; i <= request.Count; i++)
 		{
-			Id = spot.Id,
-			Number = spot.Number,
-			Size = spot.Size
-		};
+			newSpots.Add(new ParkingSpot
+			{
+				Number = $"{prefix}{existingCount + i}",
+				Size = request.Size,
+				FloorId = floorId,
+				CompanyId = companyId
+			});
+		}
+
+		_dbContext.ParkingSpots.AddRange(newSpots);
+		await _dbContext.SaveChangesAsync();   // one save = one transaction
+
+		return newSpots
+			.Select(spot => new SpotDto
+			{
+				Id = spot.Id,
+				Number = spot.Number,
+				Size = spot.Size
+			})
+			.ToList();
 	}
 
 	/// <inheritdoc />

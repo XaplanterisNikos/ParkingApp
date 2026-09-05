@@ -22,22 +22,31 @@ public class FloorService : IFloorService
 	}
 
 	/// <inheritdoc />
-	public async Task<FloorDto> CreateAsync(Guid branchId, CreateFloorRequest request)
+	public async Task<FloorDto?> CreateAsync(Guid branchId, CreateFloorRequest request)
 	{
 		var companyId = _tenantProvider.CurrentCompanyId
 			?? throw new InvalidOperationException("No tenant context for creating a floor.");
 
+		// Uniqueness: a branch can have each floor type at most once.
+		var exists = await _dbContext.Floors
+			.AnyAsync(floor => floor.BranchId == branchId && floor.Type == request.Type);
+
+		if (exists)
+		{
+			return null; // signals "already exists" to the controller
+		}
+
 		var floor = new Floor
 		{
-			Name = request.Name,
-			BranchId = branchId,	// from the route
-			CompanyId = companyId	// from the token
+			Type = request.Type,
+			BranchId = branchId,
+			CompanyId = companyId
 		};
 
 		_dbContext.Floors.Add(floor);
 		await _dbContext.SaveChangesAsync();
 
-		return new FloorDto { Id = floor.Id, Name = floor.Name };
+		return new FloorDto { Id = floor.Id, Type = floor.Type };
 	}
 
 	/// <inheritdoc />
@@ -48,9 +57,12 @@ public class FloorService : IFloorService
 		return await _dbContext.Floors
 			.AsNoTracking()
 			.Where(floor=>floor.BranchId == branchId)
-			.OrderBy(floor=>floor.Name)
-			.Select(floor=>new FloorDto
-			{ Id = floor.Id, Name = floor.Name })
+			.OrderBy(floor=>floor.Type)
+			.Select(floor => new FloorDto
+			{
+				Id = floor.Id,
+				Type = floor.Type
+			})
 			.ToListAsync();
 	}
 }

@@ -8,8 +8,7 @@ namespace ParkingApp.Shared.Floors;
 /// </summary>
 public class CreateFloorRequest
 {
-	/// <summary>The floor's display name.</summary>
+	/// <summary>The floor type to create.</summary>
 	[Required]
-	[MaxLength(100)]
-	public required string Name { get; set; }
+	public FloorType Type { get; set; }
 }

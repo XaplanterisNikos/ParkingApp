@@ -3,9 +3,13 @@
 @using Microsoft.AspNetCore.Authorization
 @using ParkingApp.Client.Consumers.Branches
 @using ParkingApp.Client.Consumers.Floors
+@using ParkingApp.Client.Consumers.Spots
 @using ParkingApp.Client.ViewModels
+@using ParkingApp.Shared.Floors
+@using ParkingApp.Shared.Spots
 @inject IBranchesConsumer BranchesConsumer
 @inject IFloorsConsumer FloorsConsumer
+@inject ISpotsConsumer SpotsConsumer
 
 @if (_viewModel is null || _viewModel.IsLoading)
 {
@@ -26,9 +30,14 @@ else
             <h2>Floors</h2>
 
             <div class="create-row">
-                <input class="text-input" placeholder="e.g. Υπόγειο"
-                       @bind="_viewModel.NewFloorName" @bind:event="oninput"
-                       disabled="@_viewModel.IsCreatingFloor" />
+                <select class="text-input" @bind="_viewModel.SelectedFloorType"
+                        disabled="@_viewModel.IsCreatingFloor">
+                    <option value="">-- Select floor --</option>
+                    @foreach (var type in _viewModel.AvailableFloorTypes)
+                    {
+                        <option value="@type">@FloorTypeInfo.NameOf(type)</option>
+                    }
+                </select>
                 <button class="btn" @onclick="_viewModel.CreateFloorAsync"
                         disabled="@_viewModel.IsCreatingFloor">
                     @(_viewModel.IsCreatingFloor ? "Adding..." : "Add floor")
@@ -45,17 +54,94 @@ else
             }
             else
             {
-                <table class="data-table">
-                    <thead>
-                        <tr><th>Floor</th></tr>
-                    </thead>
-                    <tbody>
+                <div class="floors-layout">
+                    <!-- LEFT: floor list (clickable) -->
+                    <ul class="floor-list">
                         @foreach (var floor in _viewModel.Floors)
                         {
-                            <tr><td>@floor.Name</td></tr>
+                            <li>
+                                <button class="floor-link @(_viewModel.ActiveFloorId == floor.Id ? "active" : "")"
+                                        @onclick="() => _viewModel.OpenFloorAsync(floor.Id)">
+                                    @FloorTypeInfo.NameOf(floor.Type)
+                                </button>
+                            </li>
                         }
-                    </tbody>
-                </table>
+                    </ul>
+
+                    <!-- RIGHT: spot form + spots of the active floor -->
+                    <div class="floor-detail">
+                        @if (_viewModel.ActiveFloorId is null)
+                        {
+                            <p class="muted">Select a floor to manage its spots.</p>
+                        }
+                        else
+                        {
+                            <h3>Spots</h3>
+
+                            <div class="spot-form">
+                                <select class="text-input" @bind="_viewModel.SelectedSize"
+                                        disabled="@_viewModel.IsSavingSpot">
+                                    <option value="@SpotSize.Motorcycle">@SpotSizeInfo.NameOf(SpotSize.Motorcycle)</option>
+                                    <option value="@SpotSize.Car">@SpotSizeInfo.NameOf(SpotSize.Car)</option>
+                                    <option value="@SpotSize.LargeCar">@SpotSizeInfo.NameOf(SpotSize.LargeCar)</option>
+                                </select>
+
+                                <input type="number" min="1" class="text-input" style="max-width:100px"
+                                       @bind="_viewModel.SpotCount" disabled="@_viewModel.IsSavingSpot" />
+
+                                <button class="btn" @onclick="_viewModel.GenerateSpotsAsync"
+                                        disabled="@_viewModel.IsSavingSpot">
+                                    @(_viewModel.IsSavingSpot ? "Generating..." : "Generate")
+                                </button>
+                                <button class="btn-secondary" @onclick="_viewModel.CancelSpotForm"
+                                        disabled="@_viewModel.IsSavingSpot">
+                                    Cancel
+                                </button>
+                            </div>
+
+                            @if (!string.IsNullOrEmpty(_viewModel.SpotError))
+                            {
+                                <p class="error" role="alert">@_viewModel.SpotError</p>
+                            }
+
+                            @if (_viewModel.ActiveFloorSpots.Count == 0)
+                            {
+                                <p class="muted">No spots on this floor yet.</p>
+                            }
+                            else
+                            {
+                                <table class="data-table">
+                                    <thead>
+                                        <tr><th>Number</th><th>Size</th></tr>
+                                    </thead>
+                                    <tbody>
+                                        @if (_viewModel.SpotSummary.Count == 0)
+                                        {
+                                            <p class="muted">No spots on this floor yet.</p>
+                                        }
+                                        else
+                                        {
+                                            <table class="data-table">
+                                                <thead>
+                                                    <tr><th>Κατηγορία</th><th>Θέσεις</th></tr>
+                                                </thead>
+                                                <tbody>
+                                                    @foreach (var row in _viewModel.SpotSummary)
+                                                    {
+                                                        <tr>
+                                                            <td>@SpotSizeInfo.NameOf(row.Size)</td>
+                                                            <td>@row.Count</td>
+                                                        </tr>
+                                                    }
+                                                </tbody>
+                                            </table>
+                                        }
+                                    </tbody>
+                                </table>
+                            }
+                        }
+                    </div>
+                </div>
             }
         </section>
     </div>
@@ -68,7 +154,7 @@ else
 
     protected override async Task OnInitializedAsync()
     {
-        _viewModel = new BranchManageViewModel(BranchesConsumer, FloorsConsumer, BranchId);
+        _viewModel = new BranchManageViewModel(BranchesConsumer, FloorsConsumer, SpotsConsumer,BranchId);
         await _viewModel.InitializeAsync();
     }
 }

@@ -11,6 +11,6 @@ public interface ISpotsConsumer
 	/// <summary>Gets all spots of the given floor.</summary>
 	Task<ApiResponse<List<SpotDto>>?> GetByFloorAsync(Guid floorId);
 
-	/// <summary>Creates a new spot within the given floor.</summary>
-	Task<ApiResponse<SpotDto>?> CreateAsync(Guid floorId, CreateSpotRequest request);
+	/// <summary>Generates a batch of spots of one size on the given floor.</summary>
+	Task<ApiResponse<List<SpotDto>>?> GenerateAsync(Guid floorId, GenerateSpotsRequest request);
 }

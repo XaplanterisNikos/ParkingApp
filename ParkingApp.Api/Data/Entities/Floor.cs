@@ -1,4 +1,6 @@
-﻿namespace ParkingApp.Api.Data.Entities;
+﻿using ParkingApp.Shared.Floors;
+
+namespace ParkingApp.Api.Data.Entities;
 
 /// <summary>
 /// A floor (level) within a parking branch. The owner gives it a name
@@ -8,8 +10,8 @@ public class Floor : TenantEntity
 {
 	/// <summary>The branch this floor belongs to.</summary>
 	public Guid BranchId { get; set; }
-	/// <summary>The floor's display name, defined by the owner.</summary>
-	public required string Name { get; set;  }
+	/// <summary>The floor type (Ground, First, Basement1, ...).</summary>
+	public FloorType Type { get; set; }
 
 	// Fields to add in later slices, when their screens exist ---
 	// Opening hours (a floor may open/close independently)

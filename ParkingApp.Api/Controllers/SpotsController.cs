@@ -31,13 +31,19 @@ public class SpotsController : ControllerBase
 		return Ok(ApiResponse<List<SpotDto>>.Ok(spots));
 	}
 
-	/// <summary>Creates a new spot within the given floor.</summary>
-	[HttpPost]
-	public async Task<ActionResult<ApiResponse<SpotDto>>> Create(
+	/// <summary>Generates a batch of spots of one size on the given floor.</summary>
+	[HttpPost("generate")]
+	public async Task<ActionResult<ApiResponse<List<SpotDto>>>> Generate(
 		[FromRoute] Guid floorId,
-		[FromBody] CreateSpotRequest request)
+		[FromBody] GenerateSpotsRequest request)
 	{
-		var spot = await _spotService.CreateAsync(floorId, request);
-		return Ok(ApiResponse<SpotDto>.Ok(spot));
+		var spots = await _spotService.GenerateAsync(floorId, request);
+
+		if (spots is null)
+		{
+			return NotFound(ApiResponse<List<SpotDto>>.Fail("Floor not found."));
+		}
+
+		return Ok(ApiResponse<List<SpotDto>>.Ok(spots));
 	}
 }

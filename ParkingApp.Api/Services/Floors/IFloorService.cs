@@ -11,5 +11,5 @@ public interface IFloorService
 	Task<List<FloorDto>> GetByBranchAsync(Guid branchId);
 
 	/// <summary>Creates a new floor within the given branch.</summary>
-	Task<FloorDto> CreateAsync(Guid branchId, CreateFloorRequest request);
+	Task<FloorDto?> CreateAsync(Guid branchId, CreateFloorRequest request);
 }

@@ -114,19 +114,21 @@ namespace ParkingApp.Api.Data
 				entity.ToTable("Floors");
 				entity.HasKey(floor => floor.Id);
 				entity.Property(floor => floor.Id).HasDefaultValueSql("NEWSEQUENTIALID()");
-				entity.Property(floor => floor.Name).IsRequired().HasMaxLength(100);
+				// Store the enum as int.
+				entity.Property(floor => floor.Type)
+					.HasConversion<int>();
 
-				// Index on the tenant key — the global filter uses CompanyId on every query.
 				entity.HasIndex(floor => floor.CompanyId);
 
-				// A branch has many floors; a floor belongs to one branch.
-				// Restrict delete: you can't delete a branch that still has floors.
+				// A branch can have each floor type at most once (uniqueness rule).
+				entity.HasIndex(floor => new { floor.BranchId, floor.Type })
+					.IsUnique();
+
 				entity.HasOne<Branch>()
 					.WithMany()
 					.HasForeignKey(floor => floor.BranchId)
 					.OnDelete(DeleteBehavior.Restrict);
 
-				// Same global query filter pattern as Branch — automatic tenant isolation.
 				entity.HasQueryFilter(floor => floor.CompanyId == _tenantProvider.CurrentCompanyId);
 			});
 
