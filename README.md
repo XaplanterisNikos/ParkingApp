@@ -62,8 +62,9 @@ model from day one, not an afterthought.
 | Parking branches (CRUD backend + UI) with tenant isolation | **Done** |
 | Branch management page + floors (typed, nested, tenant-isolated) | **Done** |
 | Parking spots — bulk auto-generation with structured naming | **Done** |
-| Employees & shifts | Next |
-| Vehicle entries & statistics | Planned |
+| Employees — owner creates staff, assigned to branches (many-to-many) | **Done** |
+| Vehicle entries & shifts (employee operations) | Next |
+| Statistics | Planned |
 
 **Feature Slice 1 (authentication) is complete end-to-end** — a seeded owner can log in from
 the Blazor UI, receives a JWT, and lands on a protected page that reads their identity, role,
@@ -93,6 +94,14 @@ the owner picks a size and a count, and spots are generated automatically with s
 `{floorCode}{sizeCode}{n}` (e.g. `AC1…AC40` for cars on floor A). Numbering continues from any
 existing spots of that size, and the management page shows a per-size summary rather than every
 individual spot. This completes the static structure of a parking: Company → Branch → Floor → Spot.
+
+**Feature Slice 2d (employees).** The owner creates employee accounts from a dedicated page, each
+assigned to one or more branches (many-to-many via an `EmployeeBranch` junction). Employees are
+ASP.NET Core Identity users with the `Employee` role. Usernames are made globally unique by
+prefixing them with the company's short code: the owner types `giannis`, the server stores
+`{companyCode}.giannis` (e.g. `athens.giannis`), so two companies can each have a "giannis" without
+collision. Creation runs in a transaction (user + role + branch assignments succeed together or roll
+back). The employees endpoints are owner-only (`[Authorize(Roles = "Owner")]`).
 
 > **Note on `ParkingEntry`:** an early prototype (a flat "vehicle entry log") exists in the
 > codebase from the project's first iteration. It is currently **dormant** and will be
@@ -147,6 +156,16 @@ individual spot. This completes the static structure of a parking: Company → B
 - Client: `FloorsConsumer`, `BranchManageViewModel`, and a `/branches/{id}` management page
   (branch name links to it) where the owner lists and creates floors
 - Basic navigation links (Home ⇄ Branches ⇄ branch management)
+
+**September 2026 — Typed floors, spot generation & employees (Feature Slices 2c+/2d)**
+- Reworked floors to a fixed `FloorType` enum (code + name), unique per branch
+- Bulk spot generation with structured numbering ({floorCode}{sizeCode}{n}), continuing from existing
+- `Company.Code` (unique) added, used to prefix employee usernames
+- `EmployeeBranch` junction entity (many-to-many employee↔branches)
+- `EmployeeService` (create Identity user + Employee role + branch assignments in a transaction),
+  owner-only `EmployeesController`, and an `/employees` page with a branch-picker create form
+- `AuthTokenHandler` (DelegatingHandler) now attaches the JWT to every request — consumers are
+  token-free
 
 ---
 

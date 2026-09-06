@@ -34,8 +34,8 @@
 | 2β | **Branches** — CRUD backend + UI, tenant isolation με EF Core global query filter | ✅ Ολοκληρώθηκε (end-to-end) |
 | 2γ | **Floors** — σελίδα διαχείρισης branch· όροφοι nested κάτω από branch, tenant-isolated | ✅ Ολοκληρώθηκε (end-to-end) |
 | 2γ+ | **Spots** — θέσεις με αυτόματη μαζική παραγωγή & δομημένη ονομασία ({όροφος}{τύπος}{n}) | ✅ Ολοκληρώθηκε (end-to-end) |
-| 2δ | **Employees** — ο owner δημιουργεί/διαχειρίζεται λογαριασμούς υπαλλήλων | ⏭️ Επόμενο |
-| 3 | **Shifts & Vehicle entries** — βάρδιες + κινήσεις parking (είσοδος/έξοδος/χρέωση) | 🔜 Σχεδιασμένο |
+| 2δ | **Employees** — ο owner δημιουργεί υπαλλήλους, ανάθεση σε branches (many-to-many) | ✅ Ολοκληρώθηκε (end-to-end) |
+| 3 | **Shifts & Vehicle entries** — βάρδιες + κινήσεις parking (είσοδος/έξοδος/χρέωση) | ⏭️ Επόμενο |
 | 4 | **Στατιστικά** — dashboard κινήσεων ανά branch και συνολικά | 🔜 Σχεδιασμένο |
 
 ---
