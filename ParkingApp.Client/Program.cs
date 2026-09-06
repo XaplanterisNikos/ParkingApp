@@ -9,8 +9,10 @@ using ParkingApp.Client.Consumers.Companies;
 using ParkingApp.Client.Consumers.Employees;
 using ParkingApp.Client.Consumers.Floors;
 using ParkingApp.Client.Consumers.Parking;
+using ParkingApp.Client.Consumers.Session;
 using ParkingApp.Client.Consumers.Spots;
 using ParkingApp.Client.Services.Auth;
+using ParkingApp.Client.Services.Session;
 
 var builder = WebAssemblyHostBuilder.CreateDefault(args);
 builder.RootComponents.Add<App>("#app");
@@ -47,6 +49,9 @@ builder.Services.AddScoped<ISpotsConsumer, SpotsConsumer>();
 
 // Employees API client.
 builder.Services.AddScoped<IEmployeesConsumer, EmployeesConsumer>();
+
+builder.Services.AddScoped<ISessionConsumer, SessionConsumer>();
+builder.Services.AddScoped<ISessionService, SessionService>();
 
 
 // --- Authentication / authorization (client-side) ---

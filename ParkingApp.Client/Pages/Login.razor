@@ -4,6 +4,7 @@
 @using ParkingApp.Shared.Auth
 @inject IAuthService AuthService
 @inject NavigationManager Navigation
+@inject AuthenticationStateProvider AuthStateProvider
 
 <div class="login-wrapper">
     <div class="login-card">
@@ -62,12 +63,17 @@
 
         if (success)
         {
-            Navigation.NavigateTo("");
-        }
-        else
-        {
-            _error = error;
-            _isSubmitting = false;
+            // Read the freshly-stored token to decide where this user lands.
+            var authState = await AuthStateProvider.GetAuthenticationStateAsync();
+
+            if (authState.User.IsInRole("Employee"))
+            {
+                Navigation.NavigateTo("console");
+            }
+            else
+            {
+                Navigation.NavigateTo("");
+            }
         }
     }
 }

@@ -20,7 +20,7 @@ public class TokenService : ITokenService
 	}
 
 	/// <inheritdoc />
-	public string CreateToken(ApplicationUser user, IEnumerable<string> roles)
+	public string CreateToken(ApplicationUser user, IEnumerable<string> roles, Guid? activeBranchId = null, string? activeBranchName = null)
 	{
 		var jwt = _configuration.GetSection("Jwt");
 		var key = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(jwt["Key"]!));
@@ -42,6 +42,20 @@ public class TokenService : ITokenService
 
 		// One role claim per role , so [Authorize(Roles="..")] works
 		claims.AddRange(roles.Select(role => new Claim(ClaimTypes.Role, role)));
+
+		// The active work branch — present only once the employee has picked it.
+		// Absent on the first login token; added by the re-issued token after selection.
+		if (activeBranchId is not null)
+		{
+			claims.Add(new Claim("activeBranchId", activeBranchId.Value.ToString()));
+		}
+
+		// The branch's display name, carried alongside the id so the client can show it
+		// in the nav without a separate lookup.
+		if (!string.IsNullOrEmpty(activeBranchName))
+		{
+			claims.Add(new Claim("activeBranchName", activeBranchName));
+		}
 
 		var expiryMinutes = int.Parse(jwt["ExpiryMInutes"]!);
 

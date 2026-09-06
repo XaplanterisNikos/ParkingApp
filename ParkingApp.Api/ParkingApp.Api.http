@@ -132,3 +132,29 @@ Authorization: Bearer PASTE_OWNER_TOKEN
 ### List employees — should show giannis with his branches
 GET {{host}}/api/employees
 Authorization: Bearer PASTE_OWNER_TOKEN
+
+### Paste εδώ το token που πήρες από το localStorage
+@token = eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIyOWVjOWNkNi1jNzdlLTRiOGItODU3OC03YTk5N2UzZjlmZDQiLCJodHRwOi8vc2NoZW1hcy54bWxzb2FwLm9yZy93cy8yMDA1LzA1L2lkZW50aXR5L2NsYWltcy9uYW1laWRlbnRpZmllciI6IjI5ZWM5Y2Q2LWM3N2UtNGI4Yi04NTc4LTdhOTk3ZTNmOWZkNCIsInVuaXF1ZV9uYW1lIjoiYXRoZW5zLm5pa29zIiwiY29tcGFueUlkIjoiYjkxOGRhMTItODBhOS1mMTExLWE4MTUtZWM3NTBjMzEzYWVmIiwiaHR0cDovL3NjaGVtYXMubWljcm9zb2Z0LmNvbS93cy8yMDA4LzA2L2lkZW50aXR5L2NsYWltcy9yb2xlIjoiRW1wbG95ZWUiLCJleHAiOjE3ODg3Mjc0ODgsImlzcyI6IlBhcmtpbmdBcHAuQXBpIiwiYXVkIjoiUGFya2luZ0FwcC5DbGllbnQifQ.XN8ljdwUe0e4eoOsYkFCROrtG5bqAe8MlmX8GRF7KgI
+@host = https://localhost:7005
+
+### 1. Τα branches μου
+GET {{host}}/api/session/branches
+Authorization: Bearer {{token}}
+
+### 2. Επιλογή branch — βάλε ένα Id από το response του #1
+POST {{host}}/api/session/select-branch
+Content-Type: application/json
+Authorization: Bearer {{token}}
+
+{
+  "branchId": "9de4453f-dea9-f111-a815-ec750c313aef"
+}
+
+### 3. Αρνητικό τεστ — τυχαίο Guid, πρέπει να σκάσει με 400
+POST {{host}}/api/session/select-branch
+Content-Type: application/json
+Authorization: Bearer {{token}}
+
+{
+  "branchId": "00000000-0000-0000-0000-000000000000"
+}

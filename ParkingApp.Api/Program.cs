@@ -11,6 +11,7 @@ using ParkingApp.Api.Services.Companies;
 using ParkingApp.Api.Services.Employees;
 using ParkingApp.Api.Services.Floors;
 using ParkingApp.Api.Services.Parking;
+using ParkingApp.Api.Services.Session;
 using ParkingApp.Api.Services.Spots;
 using System.Text;
 
@@ -85,6 +86,7 @@ builder.Services.AddScoped<IBranchService, BranchService>();
 builder.Services.AddScoped<IFloorService, FloorService>();
 builder.Services.AddScoped<ISpotService, SpotService>();
 builder.Services.AddScoped<IEmployeeService, EmployeeService>();
+builder.Services.AddScoped<ISessionService, SessionService>();
 
 // Multi-tenancy: resolves the current tenant from the request's token.
 builder.Services.AddHttpContextAccessor();

@@ -1,0 +1,38 @@
+﻿@namespace ParkingApp.Client.Components
+@using ParkingApp.Shared.Session
+
+<div class="modal-backdrop">
+    <div class="modal-card" role="dialog" aria-modal="true" aria-labelledby="picker-title">
+        <h2 id="picker-title">Choose your branch</h2>
+        <p class="modal-subtitle">Select the branch you are working in for this session.</p>
+
+        <div class="branch-list">
+            @foreach (var branch in Branches)
+            {
+                <button class="branch-option"
+                        @onclick="() => OnSelect.InvokeAsync(branch.Id)"
+                        disabled="@IsSelecting">
+                    @branch.Name
+                </button>
+            }
+        </div>
+
+        <button class="modal-logout" @onclick="OnLogout" disabled="@IsSelecting">
+            Sign out
+        </button>
+    </div>
+</div>
+
+@code {
+    /// <summary>The branches the employee may choose from.</summary>
+    [Parameter, EditorRequired] public List<BranchOptionDto> Branches { get; set; } = new();
+
+    /// <summary>True while a selection is being processed (disables the buttons).</summary>
+    [Parameter] public bool IsSelecting { get; set; }
+
+    /// <summary>Raised with the chosen branch id.</summary>
+    [Parameter] public EventCallback<Guid> OnSelect { get; set; }
+
+    /// <summary>Raised when the employee abandons the choice and signs out.</summary>
+    [Parameter] public EventCallback OnLogout { get; set; }
+}

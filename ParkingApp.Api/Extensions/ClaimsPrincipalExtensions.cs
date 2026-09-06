@@ -32,5 +32,23 @@ public static class ClaimsPrincipalExtensions
 	
 	}
 
+	/// <summary>
+	/// Reads the current user's Identity id from their JWT claims.
+	/// </summary>
+	/// <param name="user">The current authenticated principal.</param>
+	/// <returns>The user's Identity id.</returns>
+	/// <exception cref="InvalidOperationException">
+	/// Thrown if the id claim is missing — signals a malformed or tampered token.
+	/// </exception>
+	public static string GetUserId(this ClaimsPrincipal user)
+	{
+		var value = user.FindFirstValue(ClaimTypes.NameIdentifier);
+
+		if (!string.IsNullOrEmpty(value)) return value;
+
+		throw new InvalidOperationException(
+			"The current user has no valid NameIdentifier claim.");
+	}
+
 
 }

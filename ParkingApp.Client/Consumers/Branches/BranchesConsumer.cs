@@ -1,10 +1,6 @@
-﻿using Microsoft.IdentityModel.Tokens;
-using ParkingApp.Client.Services.Auth;
-using ParkingApp.Shared.Branches;
+﻿using ParkingApp.Shared.Branches;
 using ParkingApp.Shared.Responses;
-using System.Net.Http.Headers;
 using System.Net.Http.Json;
-using System.Net.Mail;
 
 namespace ParkingApp.Client.Consumers.Branches;
 
@@ -16,7 +12,7 @@ public class BranchesConsumer : IBranchesConsumer
 {
 	private readonly HttpClient _httpClient;
 
-	public BranchesConsumer(HttpClient httpClient, ITokenStore tokenStore)
+	public BranchesConsumer(HttpClient httpClient)
 	{
 		_httpClient = httpClient;
 	}

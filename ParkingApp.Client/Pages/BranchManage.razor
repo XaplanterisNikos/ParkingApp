@@ -1,5 +1,5 @@
 ﻿@page "/branches/{BranchId:guid}"
-@attribute [Authorize]
+@attribute [Authorize(Roles = "Owner")]
 @using Microsoft.AspNetCore.Authorization
 @using ParkingApp.Client.Consumers.Branches
 @using ParkingApp.Client.Consumers.Floors

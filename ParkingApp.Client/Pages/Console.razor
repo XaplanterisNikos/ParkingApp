@@ -1,0 +1,44 @@
+﻿@page "/console"
+@attribute [Authorize(Roles = "Employee")]
+@using ParkingApp.Client.Services.Auth
+@using ParkingApp.Client.Services.Session
+@using ParkingApp.Client.ViewModels
+@inject ISessionService SessionService
+@inject IAuthService AuthService
+@inject AuthenticationStateProvider AuthStateProvider
+@inject NavigationManager Navigation
+
+<div class="console-page">
+    <h1>Parking console</h1>
+
+    @if (_viewModel is null || _viewModel.IsLoading)
+    {
+        <p class="muted">Loading...</p>
+    }
+    else if (!string.IsNullOrEmpty(_viewModel.Error))
+    {
+        <p class="error" role="alert">@_viewModel.Error</p>
+    }
+    else if (_viewModel.ShowBranchPicker)
+    {
+        <BranchPickerModal Branches="_viewModel.Branches"
+                           IsSelecting="_viewModel.IsSelecting"
+                           OnSelect="_viewModel.SelectBranchAsync"
+                           OnLogout="_viewModel.LogoutAsync" />
+    }
+    else
+    {
+        <p class="muted">Employee workspace — parking movements coming next.</p>
+    }
+</div>
+
+@code {
+    private ConsoleViewModel? _viewModel;
+
+    protected override async Task OnInitializedAsync()
+    {
+        _viewModel = new ConsoleViewModel(
+            SessionService, AuthService, AuthStateProvider, Navigation);
+        await _viewModel.InitializeAsync();
+    }
+}

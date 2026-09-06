@@ -1,0 +1,58 @@
+﻿.modal-backdrop {
+	position: fixed;
+	inset: 0;
+	background: rgba(0, 0, 0, 0.5);
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	z-index: 1000;
+}
+
+.modal-card {
+	background: #fff;
+	border-radius: 8px;
+	padding: 1.5rem 2rem;
+	min-width: 320px;
+	max-width: 90vw;
+	box-shadow: 0 10px 40px rgba(0, 0, 0, 0.2);
+}
+
+.modal-subtitle {
+	color: #666;
+	margin-bottom: 1rem;
+}
+
+.branch-list {
+	display: flex;
+	flex-direction: column;
+	gap: 0.5rem;
+}
+
+.branch-option {
+	padding: 0.75rem 1rem;
+	border: 1px solid #ccc;
+	border-radius: 6px;
+	background: #f8f8f8;
+	cursor: pointer;
+	text-align: left;
+	font-size: 1rem;
+}
+
+	.branch-option:hover:not(:disabled) {
+		background: #eef;
+		border-color: #99f;
+	}
+
+	.branch-option:disabled {
+		opacity: 0.5;
+		cursor: default;
+	}
+
+.modal-logout {
+	margin-top: 1.25rem;
+	background: none;
+	border: none;
+	color: #a00;
+	cursor: pointer;
+	text-decoration: underline;
+}

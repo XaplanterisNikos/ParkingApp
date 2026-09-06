@@ -12,9 +12,22 @@
     <Authorized>
         <nav class="navbar">
             <div class="nav-left">
-                <a href="" class="brand">ParkingApp</a>
-                <a href="branches" class="nav-link">Branches</a>
-                <a href="employees" class="nav-link">Employees</a>
+                <AuthorizeView Roles="Owner" Context="ownerNav">
+                    <a href="" class="brand">ParkingApp</a>
+                    <a href="branches" class="nav-link">Branches</a>
+                    <a href="employees" class="nav-link">Employees</a>
+                </AuthorizeView>
+                <AuthorizeView Roles="Employee" Context="employeeNav">
+                    <a href="console" class="brand">ParkingApp</a>
+                    <a href="console" class="nav-link">Console</a>
+                    @{
+                        var activeBranch = employeeNav.User.FindFirst("activeBranchName")?.Value;
+                    }
+                    @if (!string.IsNullOrEmpty(activeBranch))
+                    {
+                        <span class="nav-branch">Branch: @activeBranch</span>
+                    }
+                </AuthorizeView>
             </div>
             <div class="nav-right">
                 @if (_viewModel is not null)
