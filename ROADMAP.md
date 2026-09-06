@@ -35,7 +35,8 @@
 | 2γ | **Floors** — σελίδα διαχείρισης branch· όροφοι nested κάτω από branch, tenant-isolated | ✅ Ολοκληρώθηκε (end-to-end) |
 | 2γ+ | **Spots** — θέσεις με αυτόματη μαζική παραγωγή & δομημένη ονομασία ({όροφος}{τύπος}{n}) | ✅ Ολοκληρώθηκε (end-to-end) |
 | 2δ | **Employees** — ο owner δημιουργεί υπαλλήλους, ανάθεση σε branches (many-to-many) | ✅ Ολοκληρώθηκε (end-to-end) |
-| 3 | **Shifts & Vehicle entries** — βάρδιες + κινήσεις parking (είσοδος/έξοδος/χρέωση) | ⏭️ Επόμενο |
+| 3α | **Employee login & active branch** — role-based routing/guards, role-aware nav, επιλογή ενεργού branch με re-issued token (`activeBranchId`) | ✅ Ολοκληρώθηκε (end-to-end) |
+| 3β | **Shifts & Vehicle entries** — βάρδιες + κινήσεις parking (είσοδος/έξοδος/χρέωση) | ⏭️ Επόμενο |
 | 4 | **Στατιστικά** — dashboard κινήσεων ανά branch και συνολικά | 🔜 Σχεδιασμένο |
 
 ---
@@ -48,9 +49,13 @@
   ώστε να μπορεί να απαντηθεί «ποιες θέσεις υπάρχουν / είναι ελεύθερες».
 - **2δ — Employees:** ο owner δημιουργεί λογαριασμούς υπαλλήλων (username + password),
   δεμένους στην εταιρία του και σε ένα ή περισσότερα branches.
-- **3 — Shifts & Entries:** ο υπάλληλος ανοίγει/κλείνει βάρδια· καταχωρεί εισόδους/εξόδους
+- **3α — Employee login & active branch:** ✅ ο υπάλληλος μπαίνει, οδηγείται στο `/console` (role-based
+  routing + guards, role-aware nav), και — αν ανήκει σε πολλά branches — επιλέγει το ενεργό. Η επιλογή
+  επικυρώνεται μία φορά server-side και ταξιδεύει ως `activeBranchId` claim μέσα σε re-issued JWT
+  (επιβιώνει refresh, αξιοποιείται δομικά από τις κινήσεις χωρίς επανέλεγχο).
+- **3β — Shifts & Entries:** ο υπάλληλος ανοίγει/κλείνει βάρδια· καταχωρεί εισόδους/εξόδους
   αυτοκινήτων και χρεώσεις. Εδώ ξαναδουλεύεται το αρχικό `ParkingEntry` ώστε να δένει σωστά
-  με branch, spot, employee και shift.
+  με branch, spot, employee και shift. Το ενεργό branch έρχεται έτοιμο από το token (3α).
 
 ### Φάση Β — Ωράισμα & ταχύτητα (μαζεμένα, συνειδητά)
 - **UI:** εισαγωγή component library (π.χ. MudBlazor ή Radzen) για συνεπές, επαγγελματικό look,

@@ -9,7 +9,7 @@
 ![Auth](https://img.shields.io/badge/Auth-JWT%20%2B%20Identity-2ea44f)
 ![License](https://img.shields.io/badge/License-MIT-blue)
 
-> ⚠️ **Work in progress.** This is a learning-driven project built one vertical slice at a time. The authentication backend is complete; the rest of the domain is being added incrementally.
+> ⚠️ **Work in progress.** This is a learning-driven project built one vertical slice at a time. Owner setup (branches, floors, spots, employees) and employee sign-in with active-branch selection are complete; the operational core (shifts and vehicle movements) is being added next.
 
 ---
 
@@ -63,6 +63,7 @@ model from day one, not an afterthought.
 | Branch management page + floors (typed, nested, tenant-isolated) | **Done** |
 | Parking spots — bulk auto-generation with structured naming | **Done** |
 | Employees — owner creates staff, assigned to branches (many-to-many) | **Done** |
+| Employee login + active-branch selection (role-based routing, guards, session token) | **Done** |
 | Vehicle entries & shifts (employee operations) | Next |
 | Statistics | Planned |
 
@@ -102,6 +103,19 @@ prefixing them with the company's short code: the owner types `giannis`, the ser
 `{companyCode}.giannis` (e.g. `athens.giannis`), so two companies can each have a "giannis" without
 collision. Creation runs in a transaction (user + role + branch assignments succeed together or roll
 back). The employees endpoints are owner-only (`[Authorize(Roles = "Owner")]`).
+
+**Feature Slice 3a (employee login & active-branch selection).** The two roles now diverge after
+login. Owner pages carry `[Authorize(Roles = "Owner")]` and employees are routed to a dedicated
+`/console`; the nav is role-aware (each role sees only its own links, and the brand link points to
+that role's home). Because an employee can belong to several branches but operates **one at a time**,
+the console acts as a gate: it reads the token to see whether an active branch is already chosen and,
+if not, either auto-selects the only branch or opens a picker. Selecting a branch calls a re-issue
+endpoint that verifies the assignment **once**, server-side, and returns a fresh JWT carrying an
+`activeBranchId` (and the branch name for display). From then on the chosen branch travels inside the
+signed token — so it survives a page refresh with no re-prompt, and later movement endpoints can trust
+it structurally rather than re-checking on every call. Employee session endpoints live in their own
+feature (`SessionController` / `SessionService`), employee-facing (`[Authorize(Roles = "Employee")]`),
+kept separate from both auth (who you are) and owner-only employee management (what the owner does).
 
 > **Note on `ParkingEntry`:** an early prototype (a flat "vehicle entry log") exists in the
 > codebase from the project's first iteration. It is currently **dormant** and will be
@@ -167,6 +181,22 @@ back). The employees endpoints are owner-only (`[Authorize(Roles = "Owner")]`).
 - `AuthTokenHandler` (DelegatingHandler) now attaches the JWT to every request — consumers are
   token-free
 
+**September 2026 — Employee login & active-branch selection (Feature Slice 3a)**
+- Role-based page guards (`[Authorize(Roles = "Owner")]` on owner pages) and post-login routing
+  (owners land on `/`, employees on `/console`); `Microsoft.AspNetCore.Authorization` made a global
+  `@using`
+- Role-aware nav: per-role links and a role-specific brand target, so an employee no longer reaches
+  owner pages through the UI
+- `TokenService` extended to embed optional `activeBranchId` + `activeBranchName` claims; the login
+  token stays branch-free, the re-issued token carries the choice
+- New employee-facing **session** feature: `SessionController` / `SessionService` with
+  `GET /api/session/branches` (the employee's assignments) and `POST /api/session/select-branch`
+  (verifies assignment, then re-issues the token) — a single query does both validation and name lookup
+- `GetUserId()` claims helper; `BranchOptionDto` / `SelectBranchRequest` / `SelectBranchResponse` contracts
+- Client: `SessionConsumer` + client `SessionService` (mirrors `AuthService`: stores the re-issued token,
+  notifies auth state), a `ConsoleViewModel` gate (claim-check → auto-select / picker), a presentational
+  `BranchPickerModal` with a sign-out escape hatch, and the active branch shown in the nav
+
 ---
 
 ## 🛠️ Tech stack
@@ -178,7 +208,7 @@ back). The employees endpoints are owner-only (`[Authorize(Roles = "Owner")]`).
 | Frontend        | Blazor WebAssembly                                      |
 | Data access     | Entity Framework Core (Code-First migrations)           |
 | Database        | SQL Server                                              |
-| Authentication  | ASP.NET Core Identity + JWT Bearer (API); JWT claims + `AuthorizeRouteView` (client) |
+| Authentication  | ASP.NET Core Identity + JWT Bearer (API); role-based JWT claims + `AuthorizeRouteView` / `AuthorizeView` (client) |
 | Client storage  | Blazored.LocalStorage (token persistence)              |
 | API docs        | Swagger / OpenAPI (Development only)                    |
 | Language        | C#                                                       |
@@ -350,7 +380,13 @@ while staying close to the intended architecture.
 - Login returns the **same** generic message whether the username or the password is wrong,
   to avoid user enumeration.
 - The JWT is **signed, not encrypted**: its claims are readable by anyone holding the token,
-  so no secrets are ever placed inside it — only id, role, and company id.
+  so no secrets are ever placed inside it — only id, role, company id, and (once an employee has
+  chosen) the active branch id and name.
+- **Active branch is validated once, then trusted as a signed claim.** When an employee selects a
+  branch, the server verifies they are actually assigned to it before embedding `activeBranchId` in a
+  re-issued token. Later requests rely on the claim without re-checking: tampering with it would break
+  the signature and fail validation. The check lives in one place instead of being repeated on every
+  operational endpoint.
 
 ---
 
