@@ -6,6 +6,7 @@ using ParkingApp.Client;
 using ParkingApp.Client.Consumers.Auth;
 using ParkingApp.Client.Consumers.Branches;
 using ParkingApp.Client.Consumers.Companies;
+using ParkingApp.Client.Consumers.Employees;
 using ParkingApp.Client.Consumers.Floors;
 using ParkingApp.Client.Consumers.Parking;
 using ParkingApp.Client.Consumers.Spots;
@@ -43,6 +44,9 @@ builder.Services.AddScoped<IFloorsConsumer, FloorsConsumer>();
 
 // Spots API client (nested under floors).
 builder.Services.AddScoped<ISpotsConsumer, SpotsConsumer>();
+
+// Employees API client.
+builder.Services.AddScoped<IEmployeesConsumer, EmployeesConsumer>();
 
 
 // --- Authentication / authorization (client-side) ---

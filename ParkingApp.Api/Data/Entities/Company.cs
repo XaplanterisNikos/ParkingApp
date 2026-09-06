@@ -15,4 +15,10 @@ public class Company
 
 	/// <summary>The users that belong to this company.</summary>
 	public ICollection<ApplicationUser> Users { get; set; } = new List<ApplicationUser>();
+
+	/// <summary>
+	/// Short, unique code for the company (e.g. "ATHENS"). Used as the prefix of
+	/// employee usernames ({code}.{username}) so usernames stay unique across tenants.
+	/// </summary>
+	public required string Code { get; set; }
 }

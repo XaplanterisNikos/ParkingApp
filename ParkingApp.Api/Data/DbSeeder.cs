@@ -21,8 +21,8 @@ public class DbSeeder
 	/// </summary>
 	private static readonly DemoTenant[] DemoTenants =
 	{
-		new("Athens Parking",       "owner@athens.test",       "Athens Owner",       "Owner123!"),
-		new("Thessaloniki Parking", "owner@thessaloniki.test", "Thessaloniki Owner", "Owner123!")
+		new("Athens Parking",    "ATHENS",   "owner@athens.test",       "Athens Owner",       "Owner123!"),
+		new("Thessaloniki Parking","THES", "owner@thessaloniki.test", "Thessaloniki Owner", "Owner123!")
 	};
 
 	/// <summary>
@@ -43,7 +43,7 @@ public class DbSeeder
 		// Each demo tenant: ensure the company exists, then its owner.
 		foreach (var tenant in DemoTenants)
 		{
-			var company = await EnsureCompanyAsync(dbContext, tenant.CompanyName);
+			var company = await EnsureCompanyAsync(dbContext, tenant.CompanyName, tenant.Code);
 
 			await EnsureOwnerAsync(userManager, company,
 				email: tenant.OwnerEmail,
@@ -62,13 +62,13 @@ public class DbSeeder
 	}
 
 	/// <summary>Returns the company with the given name, creating it if missing.</summary>
-	private static async Task<Company> EnsureCompanyAsync(ParkingDbContext dbContext, string name)
+	private static async Task<Company> EnsureCompanyAsync(ParkingDbContext dbContext, string name, string code)
 	{
 		var company = dbContext.Companies.FirstOrDefault(company => company.Name == name);
 
 		if (company is null)
 		{
-			company = new Company { Name = name };
+			company = new Company { Name = name , Code = code};
 			dbContext.Companies.Add(company);
 			await dbContext.SaveChangesAsync(); // saves + assigns the generated Guid Id
 		}
@@ -107,6 +107,7 @@ public class DbSeeder
 	/// <summary>A demo tenant to seed: one company and its owner.</summary>
 	private record DemoTenant(
 		string CompanyName,
+		string Code,
 		string OwnerEmail,
 		string OwnerFullName,
 		string OwnerPassword);

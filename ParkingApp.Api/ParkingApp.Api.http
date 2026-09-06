@@ -103,3 +103,32 @@ Authorization: Bearer {{athens}}
 ### ISOLATION: Thessaloniki tries the same Athens floorId — expect EMPTY
 GET {{host}}/api/floors/PASTE_FLOOR_ID/spots
 Authorization: Bearer {{thess}}
+
+### Login owner (Athens) — copy token
+POST {{host}}/api/auth/login
+Content-Type: application/json
+
+{
+  "userName": "owner@athens.test",
+  "password": "Owner123!"
+}
+
+### Get Athens branches — copy 1-2 branchIds
+GET {{host}}/api/branches
+Authorization: Bearer PASTE_OWNER_TOKEN
+
+### Create an employee (paste real branchIds in the array)
+POST {{host}}/api/employees
+Content-Type: application/json
+Authorization: Bearer PASTE_OWNER_TOKEN
+
+{
+  "username": "giannis",
+  "fullName": "Giannis Test",
+  "password": "Passw0rd!",
+  "branchIds": ["PASTE_BRANCH_ID_1", "PASTE_BRANCH_ID_2"]
+}
+
+### List employees — should show giannis with his branches
+GET {{host}}/api/employees
+Authorization: Bearer PASTE_OWNER_TOKEN

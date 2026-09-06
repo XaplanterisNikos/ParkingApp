@@ -29,6 +29,8 @@ namespace ParkingApp.Api.Data
 		public DbSet<ParkingEntry> ParkingEntries => Set<ParkingEntry>();
 		/// <summary>Parking spots on floors, each owned by a company.</summary>
 		public DbSet<ParkingSpot> ParkingSpots => Set<ParkingSpot>();
+		/// <summary>Employee-to-branch assignments (many-to-many).</summary>
+		public DbSet<EmployeeBranch> EmployeeBranches => Set<EmployeeBranch>();
 
 		protected override void OnModelCreating(ModelBuilder modelBuilder)
 		{
@@ -51,6 +53,14 @@ namespace ParkingApp.Api.Data
 				entity.Property(company => company.Name)
 					.IsRequired()
 					.HasMaxLength(200);
+
+				entity.Property(company => company.Code)
+					.IsRequired()
+					.HasMaxLength(20);
+
+				// The company code must be unique across the whole system.
+				entity.HasIndex(company => company.Code)
+					.IsUnique();
 
 				// One company has many users; each user belongs to exactly one company.
 				entity.HasMany(company => company.Users)
@@ -159,6 +169,37 @@ namespace ParkingApp.Api.Data
 
 				// Same automatic tenant isolation as the other tenant entities.
 				entity.HasQueryFilter(spot => spot.CompanyId == _tenantProvider.CurrentCompanyId);
+			});
+
+			modelBuilder.Entity<EmployeeBranch>(entity =>
+			{
+				entity.ToTable("EmployeeBranches");
+
+				entity.HasKey(eb => eb.Id);
+
+				entity.Property(eb => eb.Id)
+					.HasDefaultValueSql("NEWSEQUENTIALID()");
+
+				entity.HasIndex(eb => eb.CompanyId);
+
+				// Link to the branch.
+				entity.HasOne<Branch>()
+					.WithMany()
+					.HasForeignKey(eb => eb.BranchId)
+					.OnDelete(DeleteBehavior.Restrict);
+
+				// Link to the employee (ApplicationUser). Cascade: if the employee is deleted,
+				// their branch assignments go too (they're meaningless without the employee).
+				entity.HasOne<ApplicationUser>()
+					.WithMany()
+					.HasForeignKey(eb => eb.EmployeeId)
+					.OnDelete(DeleteBehavior.Cascade);
+
+				// An employee can't be assigned to the same branch twice.
+				entity.HasIndex(eb => new { eb.EmployeeId, eb.BranchId })
+					.IsUnique();
+
+				entity.HasQueryFilter(eb => eb.CompanyId == _tenantProvider.CurrentCompanyId);
 			});
 
 		}

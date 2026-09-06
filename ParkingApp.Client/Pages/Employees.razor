@@ -1,0 +1,104 @@
+﻿@page "/employees"
+@attribute [Authorize(Roles = "Owner")]
+@using Microsoft.AspNetCore.Authorization
+@using ParkingApp.Client.Consumers.Branches
+@using ParkingApp.Client.Consumers.Employees
+@using ParkingApp.Client.ViewModels
+@inject IEmployeesConsumer EmployeesConsumer
+@inject IBranchesConsumer BranchesConsumer
+
+<h1>Employees</h1>
+
+@if (_viewModel is null || _viewModel.IsLoading)
+{
+    <p class="muted">Loading...</p>
+}
+else
+{
+    @if (_viewModel.Branches.Count == 0)
+    {
+        <p class="muted">
+            You need at least one branch before adding employees.
+            <a href="branches">Create a branch first</a>.
+        </p>
+    }
+    else
+    {
+        <!-- Create form -->
+        <div class="create-card">
+            <div class="form-row">
+                <input class="text-input" placeholder="Username (e.g. giannis)"
+                       @bind="_viewModel.NewUsername" @bind:event="oninput"
+                       disabled="@_viewModel.IsCreating" />
+                <input class="text-input" placeholder="Full name"
+                       @bind="_viewModel.NewFullName" @bind:event="oninput"
+                       disabled="@_viewModel.IsCreating" />
+                <input type="password" class="text-input" placeholder="Password"
+                       @bind="_viewModel.NewPassword" @bind:event="oninput"
+                       disabled="@_viewModel.IsCreating" />
+            </div>
+
+            <div class="branch-picker">
+                <span class="picker-label">Branches:</span>
+                @foreach (var branch in _viewModel.Branches)
+                {
+                    <label class="branch-check">
+                        <input type="checkbox"
+                               checked="@_viewModel.SelectedBranchIds.Contains(branch.Id)"
+                               @onchange="() => _viewModel.ToggleBranch(branch.Id)"
+                               disabled="@_viewModel.IsCreating" />
+                        @branch.Name
+                    </label>
+                }
+            </div>
+
+            <button class="btn" @onclick="_viewModel.CreateAsync" disabled="@_viewModel.IsCreating">
+                @(_viewModel.IsCreating ? "Adding..." : "Add employee")
+            </button>
+
+            @if (!string.IsNullOrEmpty(_viewModel.CreateError))
+            {
+                <p class="error" role="alert">@_viewModel.CreateError</p>
+            }
+        </div>
+
+        <!-- List -->
+        @if (!string.IsNullOrEmpty(_viewModel.LoadError))
+        {
+            <p class="error" role="alert">@_viewModel.LoadError</p>
+        }
+        else if (_viewModel.Employees.Count == 0)
+        {
+            <p class="muted">No employees yet. Add the first one above.</p>
+        }
+        else
+        {
+            <table class="data-table">
+                <thead>
+                    <tr><th>Username</th><th>Full name</th><th>Branches</th></tr>
+                </thead>
+                <tbody>
+                    @foreach (var employee in _viewModel.Employees)
+                    {
+                        <tr>
+                            <td>@employee.LoginUsername</td>
+                            <td>@employee.FullName</td>
+                            <td>@string.Join(", ", employee.Branches.Select(b => b.Name))</td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        }
+    }
+   
+}
+
+@code {
+    private EmployeesViewModel? _viewModel;
+
+    protected override async Task OnInitializedAsync()
+    {
+        _viewModel = new EmployeesViewModel(EmployeesConsumer, BranchesConsumer);
+        await _viewModel.InitializeAsync();
+    }
+}
