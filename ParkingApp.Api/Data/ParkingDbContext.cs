@@ -26,7 +26,6 @@ namespace ParkingApp.Api.Data
 		public DbSet<Branch> Branches => Set<Branch>();
 		/// <summary>Floors within branches, each owned by a company.</summary>
 		public DbSet<Floor> Floors => Set<Floor>();
-		public DbSet<ParkingEntry> ParkingEntries => Set<ParkingEntry>();
 		/// <summary>Parking spots on floors, each owned by a company.</summary>
 		public DbSet<ParkingSpot> ParkingSpots => Set<ParkingSpot>();
 		/// <summary>Employee-to-branch assignments (many-to-many).</summary>
@@ -90,33 +89,6 @@ namespace ParkingApp.Api.Data
 				// EF Core adds "WHERE CompanyId = <current tenant>" to EVERY query on Branch,
 				// automatically. A query can never accidentally return another tenant's data.
 				entity.HasQueryFilter(branch => branch.CompanyId == _tenantProvider.CurrentCompanyId);
-			});
-
-			modelBuilder.Entity<ParkingEntry>(entity =>
-			{
-				entity.ToTable("ParkingEntries");
-
-				entity.HasKey(parkingEntry => parkingEntry.Id);
-
-				entity.Property(parkingEntry => parkingEntry.RegisteredByEmployeeId)
-					.IsRequired();
-
-				entity.Property(parkingEntry => parkingEntry.ParkingPositionJson)
-					.IsRequired();
-
-				entity.Property(parkingEntry => parkingEntry.Car)
-					.IsRequired()
-					.HasMaxLength(50);
-
-				entity.Property(parkingEntry => parkingEntry.DriverName)
-					.IsRequired()
-					.HasMaxLength(100);
-
-				entity.Property(parkingEntry => parkingEntry.EntryDateTime)
-					.IsRequired();
-
-				entity.Property(parkingEntry => parkingEntry.CreatedAt)
-					.IsRequired();
 			});
 
 			modelBuilder.Entity<Floor>(entity =>

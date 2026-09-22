@@ -8,7 +8,6 @@ using ParkingApp.Client.Consumers.Branches;
 using ParkingApp.Client.Consumers.Companies;
 using ParkingApp.Client.Consumers.Employees;
 using ParkingApp.Client.Consumers.Floors;
-using ParkingApp.Client.Consumers.Parking;
 using ParkingApp.Client.Consumers.Session;
 using ParkingApp.Client.Consumers.Spots;
 using ParkingApp.Client.Services.Auth;
@@ -32,7 +31,6 @@ builder.Services.AddHttpClient("Api", client =>
 builder.Services.AddScoped(sp =>
 	sp.GetRequiredService<IHttpClientFactory>().CreateClient("Api"));
 
-builder.Services.AddScoped<IParkingEntriesConsumer, ParkingEntriesConsumer>();
 
 // Company API client (pure HTTP communication): calls the protected /api/companies
 // endpoints, attaching the stored JWT as a Bearer token.

@@ -1,12 +1,9 @@
 ﻿using Microsoft.AspNetCore.Components;
 using Microsoft.AspNetCore.Components.Authorization;
-using Microsoft.VisualBasic;
 using ParkingApp.Client.Services.Auth;
 using ParkingApp.Client.Services.Session;
 using ParkingApp.Shared.Auth;
 using ParkingApp.Shared.Session;
-using System.Security.Claims;
-using System.Xml.Linq;
 
 namespace ParkingApp.Client.ViewModels;
 

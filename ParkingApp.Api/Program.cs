@@ -10,7 +10,6 @@ using ParkingApp.Api.Services.Branches;
 using ParkingApp.Api.Services.Companies;
 using ParkingApp.Api.Services.Employees;
 using ParkingApp.Api.Services.Floors;
-using ParkingApp.Api.Services.Parking;
 using ParkingApp.Api.Services.Session;
 using ParkingApp.Api.Services.Spots;
 using System.Text;
@@ -80,7 +79,6 @@ builder.Services.AddControllers();
 
 // Application services, registered as scoped (one instance per request).
 builder.Services.AddScoped<ITokenService, TokenService>();          // issues JWTs at login
-builder.Services.AddScoped<IParkingEntryService, ParkingEntryService>();
 builder.Services.AddScoped<ICompanyService, CompanyService>();
 builder.Services.AddScoped<IBranchService, BranchService>();
 builder.Services.AddScoped<IFloorService, FloorService>();
