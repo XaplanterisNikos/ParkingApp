@@ -24,6 +24,8 @@ namespace ParkingApp.Api.Data
 		public DbSet<Company> Companies => Set<Company>();
 		/// <summary>Parking branches, each owned by a company.</summary>
 		public DbSet<Branch> Branches => Set<Branch>();
+		/// <summary>Parking tickets (one vehicle stay each), each owned by a company.</summary>
+		public DbSet<ParkingTicket> ParkingTickets => Set<ParkingTicket>();
 		/// <summary>Floors within branches, each owned by a company.</summary>
 		public DbSet<Floor> Floors => Set<Floor>();
 		/// <summary>Parking spots on floors, each owned by a company.</summary>
@@ -89,6 +91,65 @@ namespace ParkingApp.Api.Data
 				// EF Core adds "WHERE CompanyId = <current tenant>" to EVERY query on Branch,
 				// automatically. A query can never accidentally return another tenant's data.
 				entity.HasQueryFilter(branch => branch.CompanyId == _tenantProvider.CurrentCompanyId);
+			});
+
+			modelBuilder.Entity<ParkingTicket>(entity =>
+			{
+				entity.ToTable("ParkingTickets");
+
+				entity.HasKey(ticket => ticket.Id);
+
+				entity.Property(ticket => ticket.Id)
+					.HasDefaultValueSql("NEWSEQUENTIALID()");
+
+				// Normalized plates are short; 15 leaves room for foreign formats.
+				entity.Property(ticket => ticket.LicensePlate)
+					.IsRequired()
+					.HasMaxLength(15);
+
+				entity.HasIndex(ticket => ticket.CompanyId);
+
+				// --- Relationships ---
+				// All Restrict: a ticket is a financial record and must never disappear
+				// because a branch, spot or employee was deleted. Restrict also avoids
+				// SQL Server's "multiple cascade paths" error (every path ends at Company).
+				entity.HasOne<Branch>()
+					.WithMany()
+					.HasForeignKey(ticket => ticket.BranchId)
+					.OnDelete(DeleteBehavior.Restrict);
+
+				entity.HasOne<ParkingSpot>()
+					.WithMany()
+					.HasForeignKey(ticket => ticket.ParkingSpotId)
+					.OnDelete(DeleteBehavior.Restrict);
+
+				entity.HasOne<ApplicationUser>()
+					.WithMany()
+					.HasForeignKey(ticket => ticket.EnteredByEmployeeId)
+					.OnDelete(DeleteBehavior.Restrict);
+
+				entity.HasOne<ApplicationUser>()
+					.WithMany()
+					.HasForeignKey(ticket => ticket.ExitedByEmployeeId)
+					.OnDelete(DeleteBehavior.Restrict);
+
+				// --- Concurrency guards (enforced by the database, not by our code) ---
+				// At most ONE active ticket per spot: two cash desks can never
+				// assign the same spot. The second insert fails at the database.
+				entity.HasIndex(ticket => ticket.ParkingSpotId)
+					.IsUnique()
+					.HasFilter("[ExitedAt] IS NULL")
+					.HasDatabaseName("IX_ParkingTickets_ActivePerSpot");
+
+				// At most ONE active ticket per plate within a company:
+				// the same vehicle can't be "inside" twice.
+				entity.HasIndex(ticket => new { ticket.CompanyId, ticket.LicensePlate })
+					.IsUnique()
+					.HasFilter("[ExitedAt] IS NULL")
+					.HasDatabaseName("IX_ParkingTickets_ActivePerPlate");
+
+				// Same automatic tenant isolation as the other tenant entities.
+				entity.HasQueryFilter(ticket => ticket.CompanyId == _tenantProvider.CurrentCompanyId);
 			});
 
 			modelBuilder.Entity<Floor>(entity =>
