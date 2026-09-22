@@ -1,5 +1,6 @@
 ﻿using Microsoft.IdentityModel.Tokens;
 using ParkingApp.Api.Data.Entities;
+using ParkingApp.Shared.Auth;
 using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
 using System.Text;
@@ -14,6 +15,10 @@ public class TokenService : ITokenService
 {
 	private readonly IConfiguration _configuration;
 
+	/// <summary>
+	/// Creates the token service.
+	/// </summary>
+	/// <param name="configuration">App configuration; the "Jwt" section holds key, issuer, audience and expiry.</param>
 	public TokenService(IConfiguration configuration)
 	{
 		_configuration = configuration;
@@ -37,7 +42,7 @@ public class TokenService : ITokenService
 			new(JwtRegisteredClaimNames.UniqueName, user.UserName!),
 
 			// The tenant: this is what scopes every future query to one company.
-			new("companyId",user.CompanyId.ToString())
+			new(AppClaimTypes.CompanyId, user.CompanyId.ToString())
 		};
 
 		// One role claim per role , so [Authorize(Roles="..")] works
@@ -47,17 +52,17 @@ public class TokenService : ITokenService
 		// Absent on the first login token; added by the re-issued token after selection.
 		if (activeBranchId is not null)
 		{
-			claims.Add(new Claim("activeBranchId", activeBranchId.Value.ToString()));
+			claims.Add(new Claim(AppClaimTypes.ActiveBranchId, activeBranchId.Value.ToString()));
 		}
 
 		// The branch's display name, carried alongside the id so the client can show it
 		// in the nav without a separate lookup.
 		if (!string.IsNullOrEmpty(activeBranchName))
 		{
-			claims.Add(new Claim("activeBranchName", activeBranchName));
+			claims.Add(new Claim(AppClaimTypes.ActiveBranchName, activeBranchName));
 		}
 
-		var expiryMinutes = int.Parse(jwt["ExpiryMInutes"]!);
+		var expiryMinutes = int.Parse(jwt["ExpiryMinutes"]!);
 
 		var token = new JwtSecurityToken(
 			issuer: jwt["Issuer"],

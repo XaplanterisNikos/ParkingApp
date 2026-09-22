@@ -29,7 +29,7 @@ public class TenantProvider : ITenantProvider
 				return null;
 			}
 
-			return user.GetComapnyId();
+			return user.GetCompanyId();
 		}
 
 	}

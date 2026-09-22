@@ -92,6 +92,9 @@ builder.Services.AddScoped<ISessionService, SessionService>();
 builder.Services.AddHttpContextAccessor();
 builder.Services.AddScoped<ITenantProvider, TenantProvider>();
 
+// Active branch: resolves the employee's selected work branch from the request's token.
+builder.Services.AddScoped<IActiveBranchProvider, ActiveBranchProvider>();
+
 // --- API documentation (Swagger, Development only) ---
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();

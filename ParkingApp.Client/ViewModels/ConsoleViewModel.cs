@@ -1,8 +1,12 @@
 ﻿using Microsoft.AspNetCore.Components;
 using Microsoft.AspNetCore.Components.Authorization;
+using Microsoft.VisualBasic;
 using ParkingApp.Client.Services.Auth;
 using ParkingApp.Client.Services.Session;
+using ParkingApp.Shared.Auth;
 using ParkingApp.Shared.Session;
+using System.Security.Claims;
+using System.Xml.Linq;
 
 namespace ParkingApp.Client.ViewModels;
 
@@ -18,12 +22,16 @@ public class ConsoleViewModel
 	private readonly IAuthService _authService;
 	private readonly AuthenticationStateProvider _authStateProvider;
 	private readonly NavigationManager _navigationManager;
-
-	/// <summary>The claim type carrying the chosen work branch id.</summary>
-	private const string ActiveBranchIdClaim = "activeBranchId";
 	#endregion
 
 	#region Constructor
+	/// <summary>
+	/// Creates the view model. Instantiated manually by the page (not via DI).
+	/// </summary>
+	/// <param name="sessionService">Loads the employee's branches and selects the active one.</param>
+	/// <param name="authService">Used for sign-out from the picker.</param>
+	/// <param name="authStateProvider">Reads the current token's claims.</param>
+	/// <param name="navigationManager">Navigation after sign-out.</param>
 	public ConsoleViewModel(
 		ISessionService sessionService,
 		IAuthService authService,
@@ -129,7 +137,8 @@ public class ConsoleViewModel
 	private async Task<bool> HasActiveBranchAsync()
 	{
 		var state = await _authStateProvider.GetAuthenticationStateAsync();
-		return state.User.FindFirst(ActiveBranchIdClaim) is not null;
+		// Claim name from the shared constants — the same one TokenService writes
+		return state.User.FindFirst(AppClaimTypes.ActiveBranchId) is not null;
 	}
 	#endregion
 }

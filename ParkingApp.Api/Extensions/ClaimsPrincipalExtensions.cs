@@ -1,4 +1,5 @@
-﻿using System.Security.Claims;
+﻿using ParkingApp.Shared.Auth;
+using System.Security.Claims;
 
 namespace ParkingApp.Api.Extensions;
 
@@ -8,11 +9,6 @@ namespace ParkingApp.Api.Extensions;
 public static class ClaimsPrincipalExtensions
 {
 	/// <summary>
-	/// The claim type that carries the tenant (comapny) id in the JWT.
-	/// </summary>
-	public const string CompanyIdClaim = "companyId";
-
-	/// <summary>
 	/// Reads the current user's company id from their JWT claims.
 	/// </summary>
 	/// <param name="user">The current authenticated principal.</param>
@@ -21,9 +17,10 @@ public static class ClaimsPrincipalExtensions
 	/// Thrown if the claim is missing or malformed — this should never happen for a
 	/// properly issued token, so it signals a bug or tampering rather than user error.
 	/// </exception>
-	public static Guid GetComapnyId(this ClaimsPrincipal user)
+	public static Guid GetCompanyId(this ClaimsPrincipal user)
 	{
-		var value = user.FindFirst(CompanyIdClaim)?.Value;
+		// Claim name comes from the shared constants (single source of truth)
+		var value = user.FindFirst(AppClaimTypes.CompanyId)?.Value;
 
 		if (Guid.TryParse(value, out var companyId)) return companyId;
 
@@ -50,5 +47,23 @@ public static class ClaimsPrincipalExtensions
 			"The current user has no valid NameIdentifier claim.");
 	}
 
+	/// <summary>
+	/// Reads the branch the employee selected for this work session.
+	/// </summary>
+	/// <param name="user">The current authenticated principal.</param>
+	/// <returns>
+	/// The active branch id, or <c>null</c> if no branch has been selected yet.
+	/// </returns>
+	/// <remarks>
+	/// Unlike <see cref="GetCompanyId"/>, a missing claim is NOT an error here:
+	/// the first login token is intentionally branch-free, and the claim only
+	/// appears after the employee selects a branch (re-issued token).
+	/// </remarks>
+	public static Guid? GetActiveBranchId(this ClaimsPrincipal user)
+	{
+		var value = user.FindFirst(AppClaimTypes.ActiveBranchId)?.Value;
 
+		// Missing or malformed claim → no active branch (null), never an exception
+		return Guid.TryParse(value, out var branchId) ? branchId : null;
+	}
 }

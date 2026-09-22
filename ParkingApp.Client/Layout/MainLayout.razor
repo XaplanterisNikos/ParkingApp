@@ -21,7 +21,7 @@
                     <a href="console" class="brand">ParkingApp</a>
                     <a href="console" class="nav-link">Console</a>
                     @{
-                        var activeBranch = employeeNav.User.FindFirst("activeBranchName")?.Value;
+                        var activeBranch = employeeNav.User.FindFirst(AppClaimTypes.ActiveBranchName)?.Value;
                     }
                     @if (!string.IsNullOrEmpty(activeBranch))
                     {

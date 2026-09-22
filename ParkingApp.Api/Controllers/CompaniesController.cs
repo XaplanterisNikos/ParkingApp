@@ -31,7 +31,7 @@ public class CompaniesController : ControllerBase
 	[HttpGet("about")]
 	public async Task<ActionResult<ApiResponse<CompanyDto>>> GetMyCompany()
 	{
-		var companyId = User.GetComapnyId();
+		var companyId = User.GetCompanyId();
 		var company = await _companyService.GetByIdAsync(companyId);
 
 		if(company is null)
