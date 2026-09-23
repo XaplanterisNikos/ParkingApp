@@ -3,10 +3,12 @@
 @using ParkingApp.Client.Services.Auth
 @using ParkingApp.Client.Services.Session
 @using ParkingApp.Client.ViewModels
+@using ParkingApp.Client.Consumers.Console
 @inject ISessionService SessionService
 @inject IAuthService AuthService
 @inject AuthenticationStateProvider AuthStateProvider
 @inject NavigationManager Navigation
+@inject IConsoleConsumer ConsoleConsumer
 
 <div class="console-page">
     <h1>Parking console</h1>
@@ -28,7 +30,14 @@
     }
     else
     {
-        <p class="muted">Employee workspace — parking movements coming next.</p>
+        @* Ready: branch selected. The view model owns the data; the cards only display it. *@
+        <OccupancyCards Items="_viewModel.Occupancy"
+                        TotalSpots="_viewModel.TotalSpots"
+                        OccupiedSpots="_viewModel.OccupiedSpots"
+                        FreeSpots="_viewModel.FreeSpots"
+                        IsLoading="_viewModel.IsLoadingOccupancy"
+                        Error="@_viewModel.OccupancyError"
+                        OnRefresh="_viewModel.LoadOccupancyAsync" />
     }
 </div>
 
@@ -38,7 +47,7 @@
     protected override async Task OnInitializedAsync()
     {
         _viewModel = new ConsoleViewModel(
-            SessionService, AuthService, AuthStateProvider, Navigation);
+            SessionService, ConsoleConsumer, AuthService, AuthStateProvider, Navigation);
         await _viewModel.InitializeAsync();
     }
 }

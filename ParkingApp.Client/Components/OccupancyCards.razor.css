@@ -1,0 +1,94 @@
+﻿/* Occupancy section: header row + responsive grid of cards */
+.occupancy {
+	margin-top: 1.5rem;
+}
+
+.occupancy-header {
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+	margin-bottom: 1rem;
+}
+
+	.occupancy-header h2 {
+		font-size: 1.15rem;
+		font-weight: 700;
+		margin: 0;
+	}
+
+.refresh-button {
+	padding: 0.4rem 0.9rem;
+	border: 1px solid #d1d5db;
+	border-radius: 8px;
+	background: #fff;
+	font-size: 0.85rem;
+	cursor: pointer;
+}
+
+	.refresh-button:disabled {
+		opacity: 0.6;
+		cursor: default;
+	}
+
+/* As many 180px+ columns as fit; wraps to one column on phones */
+.cards {
+	display: grid;
+	grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+	gap: 0.75rem;
+}
+
+.card {
+	display: flex;
+	flex-direction: column;
+	border: 1px solid #e5e5e5;
+	border-radius: 10px;
+	padding: 1rem;
+	background: #fff;
+}
+
+	/* The branch-wide card stands out slightly */
+	.card.summary {
+		border-color: #1a1a1a;
+	}
+
+	/* No free spots: signal it without relying on color alone (the "0" is also shown) */
+	.card.full {
+		background: #f5f5f5;
+	}
+
+.card-title {
+	font-size: 0.85rem;
+	font-weight: 600;
+	color: #374151;
+}
+
+.card-free {
+	font-size: 2rem;
+	font-weight: 700;
+	line-height: 1.1;
+	margin-top: 0.5rem;
+}
+
+.card-label {
+	font-size: 0.8rem;
+	color: #6b7280;
+}
+
+.card-detail {
+	font-size: 0.8rem;
+	color: #6b7280;
+	margin-top: 0.5rem;
+}
+
+.muted {
+	color: #6b7280;
+	font-size: 0.9rem;
+}
+.error {
+	color: #1a1a1a;
+	background: #f5f5f5;
+	border: 1px solid #d1d5db;
+	border-radius: 8px;
+	padding: 0.5rem 0.75rem;
+	font-size: 0.85rem;
+}

@@ -6,6 +6,7 @@ using ParkingApp.Client;
 using ParkingApp.Client.Consumers.Auth;
 using ParkingApp.Client.Consumers.Branches;
 using ParkingApp.Client.Consumers.Companies;
+using ParkingApp.Client.Consumers.Console;
 using ParkingApp.Client.Consumers.Employees;
 using ParkingApp.Client.Consumers.Floors;
 using ParkingApp.Client.Consumers.Session;
@@ -50,6 +51,9 @@ builder.Services.AddScoped<IEmployeesConsumer, EmployeesConsumer>();
 
 builder.Services.AddScoped<ISessionConsumer, SessionConsumer>();
 builder.Services.AddScoped<ISessionService, SessionService>();
+
+// Console API client (employee cash desk; branch comes from the token).
+builder.Services.AddScoped<IConsoleConsumer, ConsoleConsumer>();
 
 
 // --- Authentication / authorization (client-side) ---

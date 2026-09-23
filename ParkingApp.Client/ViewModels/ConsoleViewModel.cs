@@ -1,8 +1,10 @@
 ﻿using Microsoft.AspNetCore.Components;
 using Microsoft.AspNetCore.Components.Authorization;
+using ParkingApp.Client.Consumers.Console;
 using ParkingApp.Client.Services.Auth;
 using ParkingApp.Client.Services.Session;
 using ParkingApp.Shared.Auth;
+using ParkingApp.Shared.Console;
 using ParkingApp.Shared.Session;
 
 namespace ParkingApp.Client.ViewModels;
@@ -16,6 +18,7 @@ public class ConsoleViewModel
 {
 	#region Fields
 	private readonly ISessionService _sessionService;
+	private readonly IConsoleConsumer _consoleConsumer;
 	private readonly IAuthService _authService;
 	private readonly AuthenticationStateProvider _authStateProvider;
 	private readonly NavigationManager _navigationManager;
@@ -26,17 +29,20 @@ public class ConsoleViewModel
 	/// Creates the view model. Instantiated manually by the page (not via DI).
 	/// </summary>
 	/// <param name="sessionService">Loads the employee's branches and selects the active one.</param>
+	/// <param name="consoleConsumer">Loads the active branch's occupancy.</param>
 	/// <param name="authService">Used for sign-out from the picker.</param>
 	/// <param name="authStateProvider">Reads the current token's claims.</param>
 	/// <param name="navigationManager">Navigation after sign-out.</param>
 	public ConsoleViewModel(
 		ISessionService sessionService,
+		IConsoleConsumer consoleConsumer,
 		IAuthService authService,
 		AuthenticationStateProvider authStateProvider,
 		NavigationManager navigationManager)
 	{
 		_sessionService = sessionService;
 		_authService = authService;
+		_consoleConsumer = consoleConsumer;
 		_authStateProvider = authStateProvider;
 		_navigationManager = navigationManager;
 	}
@@ -57,6 +63,27 @@ public class ConsoleViewModel
 
 	/// <summary>Error message if loading branches or selecting one failed.</summary>
 	public string? Error { get; private set; }
+
+	/// <summary>Occupancy per spot size for the active branch (empty until loaded).</summary>
+	public List<SpotSizeOccupancyDto> Occupancy { get; private set; } = new();
+
+	/// <summary>True while occupancy is being (re)loaded — disables the refresh button.</summary>
+	public bool IsLoadingOccupancy { get; private set; }
+
+	/// <summary>
+	/// Error message if loading occupancy failed. Kept separate from <see cref="Error"/>
+	/// so a failed occupancy load doesn't take down the whole console.
+	/// </summary>
+	public string? OccupancyError { get; private set; }
+
+	/// <summary>All spots in the branch (derived from <see cref="Occupancy"/>).</summary>
+	public int TotalSpots => Occupancy.Sum(item => item.Total);
+
+	/// <summary>Spots with an active ticket (derived from <see cref="Occupancy"/>).</summary>
+	public int OccupiedSpots => Occupancy.Sum(item => item.Occupied);
+
+	/// <summary>Spots available right now (derived — never stored).</summary>
+	public int FreeSpots => TotalSpots - OccupiedSpots;
 	#endregion
 
 	#region Public methods
@@ -73,6 +100,7 @@ public class ConsoleViewModel
 		// Already chose a branch — the claim lives in the token, so this survives F5.
 		if (await HasActiveBranchAsync())
 		{
+			await LoadOccupancyAsync();
 			IsLoading = false;
 			return;
 		}
@@ -119,6 +147,48 @@ public class ConsoleViewModel
 		// service makes the nav pick up the branch name on its own.
 		ShowBranchPicker = false;
 		IsSelecting = false;
+
+		// The token now carries the branch; close the picker. The notify inside the
+		// service makes the nav pick up the branch name on its own.
+		ShowBranchPicker = false;
+		IsSelecting = false;
+
+		// Ready path #2: the new token (with the branch claim) is already stored,
+		// so this request passes the ActiveBranch policy.
+		await LoadOccupancyAsync();
+	}
+
+	/// <summary>
+	/// Loads (or reloads) the active branch's occupancy. Also used by the refresh
+	/// button, since the console is a snapshot and does not update live.
+	/// </summary>
+	public async Task LoadOccupancyAsync()
+	{
+		IsLoadingOccupancy = true;
+		OccupancyError = null;
+
+		try
+		{
+			var result = await _consoleConsumer.GetOccupancyAsync();
+
+			if (result is not { Success: true, Value: not null })
+			{
+				OccupancyError = result?.Message ?? "Could not load occupancy.";
+				return;
+			}
+
+			Occupancy = result.Value;
+		}
+		catch
+		{
+			// Non-2xx (e.g. 403/500) or network failure — same handling as the other view models
+			OccupancyError = "Could not reach the server.";
+		}
+		finally
+		{
+			// Runs on every exit path: success, early return, or exception
+			IsLoadingOccupancy = false;
+		}
 	}
 
 	/// <summary>Abandons the choice and logs out — the escape hatch from the picker.</summary>

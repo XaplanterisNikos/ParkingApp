@@ -1,0 +1,71 @@
+﻿@namespace ParkingApp.Client.Components
+@using ParkingApp.Shared.Console
+@using ParkingApp.Shared.Spots
+
+@* Presentational: shows occupancy it is given; loading and refreshing belong to the page's view model. *@
+<section class="occupancy">
+    <div class="occupancy-header">
+        <h2>Occupancy</h2>
+        <button class="refresh-button" @onclick="OnRefresh" disabled="@IsLoading">
+            @(IsLoading ? "Refreshing..." : "Refresh")
+        </button>
+    </div>
+
+    @if (!string.IsNullOrEmpty(Error))
+    {
+        @* A failed load must not look like an empty branch *@
+        <p class="error" role="alert">@Error</p>
+    }
+    else if (Items.Count == 0)
+    {
+        <p class="muted">No spots in this branch yet.</p>
+    }
+    else
+    {
+        <div class="cards">
+            @* Branch-wide summary first *@
+            <div class="card summary @(FreeSpots == 0 ? "full" : null)">
+                <span class="card-title">All spots</span>
+                <span class="card-free">@FreeSpots</span>
+                <span class="card-label">free</span>
+                <span class="card-detail">Occupied @OccupiedSpots / @TotalSpots</span>
+            </div>
+
+            @foreach (var item in Items)
+            {
+                // Free is derived here too — the DTO only carries Total and Occupied
+                var free = item.Total - item.Occupied;
+
+                <div class="card @(free == 0 ? "full" : null)">
+                    <span class="card-title">@SpotSizeInfo.NameOf(item.Size)</span>
+                    <span class="card-free">@free</span>
+                    <span class="card-label">free</span>
+                    <span class="card-detail">Occupied @item.Occupied / @item.Total</span>
+                </div>
+            }
+        </div>
+    }
+</section>
+
+@code {
+    /// <summary>Occupancy per spot size category (only sizes that exist in the branch).</summary>
+    [Parameter, EditorRequired] public List<SpotSizeOccupancyDto> Items { get; set; } = new();
+
+    /// <summary>All spots in the branch.</summary>
+    [Parameter] public int TotalSpots { get; set; }
+
+    /// <summary>Spots with an active ticket.</summary>
+    [Parameter] public int OccupiedSpots { get; set; }
+
+    /// <summary>Spots available right now.</summary>
+    [Parameter] public int FreeSpots { get; set; }
+
+    /// <summary>True while occupancy is reloading (disables the refresh button).</summary>
+    [Parameter] public bool IsLoading { get; set; }
+
+    /// <summary>Raised when the employee asks for fresh numbers.</summary>
+    [Parameter] public EventCallback OnRefresh { get; set; }
+
+    /// <summary>Error from the last load, shown instead of the cards (refresh stays available).</summary>
+    [Parameter] public string? Error { get; set; }
+}
