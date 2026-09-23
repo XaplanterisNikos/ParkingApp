@@ -2,16 +2,19 @@ using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
+using ParkingApp.Api.Authorization;
 using ParkingApp.Api.Data;
 using ParkingApp.Api.Data.Entities;
 using ParkingApp.Api.MultiTenancy;
 using ParkingApp.Api.Services.Auth;
 using ParkingApp.Api.Services.Branches;
 using ParkingApp.Api.Services.Companies;
+using ParkingApp.Api.Services.Console;
 using ParkingApp.Api.Services.Employees;
 using ParkingApp.Api.Services.Floors;
 using ParkingApp.Api.Services.Session;
 using ParkingApp.Api.Services.Spots;
+using ParkingApp.Shared.Auth;
 using System.Text;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -58,6 +61,18 @@ builder.Services.AddAuthentication(options =>
 		};
 	});
 
+// --- Authorization policies ---
+// Named rules applied with [Authorize(Policy = ...)]. All requirements of a
+// policy must pass (AND); a signed-in user who fails them gets 403 Forbidden.
+builder.Services.AddAuthorization(options =>
+{
+	// Console endpoints: an employee who has already selected a work branch.
+	options.AddPolicy(AuthPolicies.ActiveBranch, policy => policy
+		.RequireRole(DbSeeder.EmployeeRole)              // only employees
+		.RequireClaim(AppClaimTypes.ActiveBranchId));    // claim must exist (any value)
+});
+
+
 // --- CORS ---
 // The Blazor WASM client runs on a different origin than the API, so the
 // browser needs explicit permission to call it. Restricted to the dev origins.
@@ -85,6 +100,8 @@ builder.Services.AddScoped<IFloorService, FloorService>();
 builder.Services.AddScoped<ISpotService, SpotService>();
 builder.Services.AddScoped<IEmployeeService, EmployeeService>();
 builder.Services.AddScoped<ISessionService, SessionService>();
+builder.Services.AddScoped<IConsoleService, ConsoleService>();
+
 
 // Multi-tenancy: resolves the current tenant from the request's token.
 builder.Services.AddHttpContextAccessor();
