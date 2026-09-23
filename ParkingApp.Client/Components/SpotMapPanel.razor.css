@@ -1,0 +1,147 @@
+﻿/* Spot map section: header, size picker, floor tabs, spot grid */
+.spot-map {
+	margin-top: 1.5rem;
+}
+
+.spot-map-header {
+	display: flex;
+	align-items: center;
+	gap: 0.75rem;
+	margin-bottom: 1rem;
+}
+
+	.spot-map-header h2 {
+		font-size: 1.15rem;
+		font-weight: 700;
+		margin: 0;
+	}
+
+/* --- Vehicle size picker and floor tabs share the same button look --- */
+.size-picker,
+.floor-tabs {
+	display: flex;
+	gap: 0.5rem;
+	margin-bottom: 1rem;
+}
+
+/* Many floors must not wrap into a mess on phones: scroll sideways instead */
+.floor-tabs {
+	overflow-x: auto;
+	padding-bottom: 0.25rem;
+}
+
+.size-button,
+.floor-tab {
+	display: flex;
+	align-items: center;
+	gap: 0.4rem;
+	padding: 0.4rem 0.9rem;
+	border: 1px solid #d1d5db;
+	border-radius: 8px;
+	background: #fff;
+	font-size: 0.85rem;
+	white-space: nowrap;
+	cursor: pointer;
+}
+
+	/* Selected: inverted colours — also exposed to screen readers via aria-pressed */
+	.size-button.active,
+	.floor-tab.active {
+		background: #1a1a1a;
+		border-color: #1a1a1a;
+		color: #fff;
+	}
+
+	.size-button:disabled {
+		opacity: 0.6;
+		cursor: default;
+	}
+
+.floor-free {
+	font-size: 0.75rem;
+	opacity: 0.75;
+}
+
+.floor-star {
+	font-size: 0.8rem;
+}
+
+/* --- One row per spot size --- */
+.size-row {
+	margin-bottom: 1rem;
+}
+
+.size-row-title {
+	display: block;
+	font-size: 0.85rem;
+	font-weight: 600;
+	color: #374151;
+	margin-bottom: 0.4rem;
+}
+
+/* auto-FILL (not auto-fit): boxes keep their size even when a row has only a few spots */
+.spots {
+	display: grid;
+	grid-template-columns: repeat(auto-fill, minmax(64px, 1fr));
+	gap: 0.4rem;
+}
+
+/* --- Spot boxes --- */
+.spot {
+	position: relative;
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	min-height: 48px;
+	border: 1px solid;
+	border-radius: 6px;
+	font-size: 0.8rem;
+	font-weight: 600;
+}
+
+	.spot.free {
+		background: #dcfce7;
+		border-color: #16a34a;
+		color: #14532d;
+	}
+
+	/* Occupied: red AND diagonal hatching — readable without colour vision */
+	.spot.occupied {
+		background-color: #fee2e2;
+		background-image: repeating-linear-gradient( 45deg, transparent 0 6px, rgba(220, 38, 38, 0.18) 6px 12px);
+		border-color: #dc2626;
+		color: #7f1d1d;
+	}
+
+	/* Suggested: outline (not border) so the box keeps its size and the grid doesn't shift */
+	.spot.suggested {
+		outline: 3px solid #1a1a1a;
+		outline-offset: 2px;
+	}
+
+	/* Smaller than the declared vehicle: still visible, clearly not an option */
+	.spot.too-small {
+		opacity: 0.35;
+	}
+
+.spot-star {
+	position: absolute;
+	top: 2px;
+	right: 4px;
+	font-size: 0.7rem;
+}
+
+/* Duplicated from OccupancyCards.razor.css: isolated CSS is scoped per component */
+.muted {
+	color: #6b7280;
+	font-size: 0.9rem;
+}
+
+.error {
+	color: #1a1a1a;
+	background: #f5f5f5;
+	border: 1px solid #d1d5db;
+	border-radius: 8px;
+	padding: 0.5rem 0.75rem;
+	font-size: 0.85rem;
+}

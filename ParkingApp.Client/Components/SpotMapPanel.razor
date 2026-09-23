@@ -1,0 +1,147 @@
+﻿@namespace ParkingApp.Client.Components
+@using ParkingApp.Shared.Console
+@using ParkingApp.Shared.Floors
+@using ParkingApp.Shared.Spots
+
+@* Presentational: shows the spot map it is given; loading, suggestion and floor rules belong to the view model. *@
+<section class="spot-map">
+    <div class="spot-map-header">
+        <h2>Spot map</h2>
+        @if (IsLoading)
+        {
+            <span class="muted">Loading...</span>
+        }
+    </div>
+
+    @* Vehicle size drives the server's suggestion; clicking the selected size again clears it *@
+    <div class="size-picker" role="group" aria-label="Vehicle size">
+        @foreach (var size in Enum.GetValues<SpotSize>())
+        {
+            var isSelected = size == SelectedVehicleSize;
+
+            <button class="size-button @(isSelected ? "active" : null)"
+                    aria-pressed="@(isSelected ? "true" : "false")"
+                    disabled="@IsLoading"
+                    @onclick="() => OnSelectVehicleSize.InvokeAsync(isSelected ? (SpotSize?)null : size)">
+                @SpotSizeInfo.NameOf(size)
+            </button>
+        }
+    </div>
+
+    @if (!string.IsNullOrEmpty(Error))
+    {
+        @* A failed load must not look like an empty branch *@
+        <p class="error" role="alert">@Error</p>
+    }
+    else if (Map.Floors.Count == 0)
+    {
+        <p class="muted">No floors in this branch yet.</p>
+    }
+    else
+    {
+        @if (SelectedVehicleSize is { } requestedSize && Map.SuggestedSpotId is null)
+        {
+            <p class="muted" role="status">
+                No free @SpotSizeInfo.NameOf(requestedSize) spot — a larger free spot can still be used.
+            </p>
+        }
+
+        @* Floors in physical order; each tab shows its free spots and whether it holds the suggestion *@
+        <div class="floor-tabs">
+            @foreach (var floor in Map.Floors)
+            {
+                var isSelected = floor.Type == SelectedFloor?.Type;
+                var free = floor.Spots.Count(spot => !spot.IsOccupied);
+                var hasSuggestion = floor.Spots.Any(spot => spot.Id == Map.SuggestedSpotId);
+
+                <button class="floor-tab @(isSelected ? "active" : null)"
+                        aria-pressed="@(isSelected ? "true" : "false")"
+                        @onclick="() => OnSelectFloor.InvokeAsync(floor.Type)">
+                    @FloorTypeInfo.NameOf(floor.Type)
+                    <span class="floor-free">@free free</span>
+                    @if (hasSuggestion)
+                    {
+                        <span class="floor-star" title="The suggested spot is on this floor">★</span>
+                    }
+                </button>
+            }
+        </div>
+
+        @if (SelectedFloor is null || SelectedFloor.Spots.Count == 0)
+        {
+            <p class="muted">No spots on this floor yet.</p>
+        }
+        else
+        {
+            @* One row per size; the server's order (size, then number) survives GroupBy *@
+            @foreach (var sizeGroup in SelectedFloor.Spots.GroupBy(spot => spot.Size))
+            {
+                <div class="size-row">
+                    <span class="size-row-title">@SpotSizeInfo.NameOf(sizeGroup.Key)</span>
+                    <div class="spots">
+                        @foreach (var spot in sizeGroup)
+                        {
+                            <div class="@SpotCss(spot)" title="@SpotTitle(spot)">
+                                @spot.Number
+                                @if (spot.Id == Map.SuggestedSpotId)
+                                {
+                                    <span class="spot-star" aria-hidden="true">★</span>
+                                }
+                            </div>
+                        }
+                    </div>
+                </div>
+            }
+        }
+    }
+</section>
+
+@code {
+    /// <summary>The active branch's spot map (floors in physical order, spots in display order).</summary>
+    [Parameter, EditorRequired] public SpotMapDto Map { get; set; } = new();
+
+    /// <summary>The floor currently shown, or null when the branch has no floors.</summary>
+    [Parameter] public FloorMapDto? SelectedFloor { get; set; }
+
+    /// <summary>The declared vehicle size, or null before choosing one.</summary>
+    [Parameter] public SpotSize? SelectedVehicleSize { get; set; }
+
+    /// <summary>True while the map reloads (disables the size buttons; the old map stays visible).</summary>
+    [Parameter] public bool IsLoading { get; set; }
+
+    /// <summary>Error from the last load, shown instead of the map.</summary>
+    [Parameter] public string? Error { get; set; }
+
+    /// <summary>Raised with the newly declared vehicle size, or null to clear it.</summary>
+    [Parameter] public EventCallback<SpotSize?> OnSelectVehicleSize { get; set; }
+
+    /// <summary>Raised when the employee switches to another floor.</summary>
+    [Parameter] public EventCallback<FloorType> OnSelectFloor { get; set; }
+
+    /// <summary>
+    /// CSS classes of a spot box: its status, whether it is the suggestion,
+    /// and whether it is too small for the declared vehicle.
+    /// </summary>
+    private string SpotCss(SpotStatusDto spot)
+    {
+        var css = spot.IsOccupied ? "spot occupied" : "spot free";
+
+        if (spot.Id == Map.SuggestedSpotId)
+        {
+            css += " suggested";
+        }
+
+        // Enum values are ordered by size (Motorcycle < Car < LargeCar), so "<" means "does not fit".
+        // Visual hint only — the server enforces the rule when the entry is confirmed (3β.2β).
+        if (SelectedVehicleSize is { } size && spot.Size < size)
+        {
+            css += " too-small";
+        }
+
+        return css;
+    }
+
+    /// <summary>Tooltip with the same information as the colours, in words — colour is never the only cue.</summary>
+    private string SpotTitle(SpotStatusDto spot) =>
+        $"{spot.Number} · {SpotSizeInfo.NameOf(spot.Size)} · {(spot.IsOccupied ? "occupied" : "free")}";
+}

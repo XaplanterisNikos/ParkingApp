@@ -31,6 +31,7 @@
     else
     {
         @* Ready: branch selected. The view model owns the data; the cards only display it. *@
+        @* One refresh reloads BOTH panels, and stays disabled until both are done — they must never disagree *@
         <OccupancyCards Items="_viewModel.Occupancy"
                         TotalSpots="_viewModel.TotalSpots"
                         OccupiedSpots="_viewModel.OccupiedSpots"
@@ -38,6 +39,14 @@
                         IsLoading="_viewModel.IsLoadingOccupancy"
                         Error="@_viewModel.OccupancyError"
                         OnRefresh="_viewModel.LoadOccupancyAsync" />
+
+        <SpotMapPanel Map="_viewModel.SpotMap"
+                      SelectedFloor="_viewModel.SelectedFloor"
+                      SelectedVehicleSize="_viewModel.SelectedVehicleSize"
+                      IsLoading="_viewModel.IsLoadingSpotMap"
+                      Error="@_viewModel.SpotMapError"
+                      OnSelectVehicleSize="_viewModel.SelectVehicleSizeAsync"
+                      OnSelectFloor="_viewModel.SelectFloor" />
     }
 </div>
 

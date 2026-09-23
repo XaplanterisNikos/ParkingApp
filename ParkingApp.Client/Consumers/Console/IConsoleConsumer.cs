@@ -1,5 +1,6 @@
 ﻿using ParkingApp.Shared.Console;
 using ParkingApp.Shared.Responses;
+using ParkingApp.Shared.Spots;
 
 namespace ParkingApp.Client.Consumers.Console;
 
@@ -13,4 +14,13 @@ public interface IConsoleConsumer
 	/// Gets total and occupied spots per size category for the active branch.
 	/// </summary>
 	Task<ApiResponse<List<SpotSizeOccupancyDto>>?> GetOccupancyAsync();
+
+	/// <summary>
+	/// Gets the spot map of the active branch (floors, spots, live occupancy) and, when
+	/// <paramref name="size"/> is given, the server's suggested free spot of exactly that size.
+	/// </summary>
+	/// <param name="size">
+	/// The vehicle's size category, or <c>null</c> to get the map without a suggestion.
+	/// </param>
+	Task<ApiResponse<SpotMapDto>?> GetSpotMapAsync(SpotSize? size);
 }
