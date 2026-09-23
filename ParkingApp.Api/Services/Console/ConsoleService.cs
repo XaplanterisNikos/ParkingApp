@@ -133,7 +133,8 @@ public class ConsoleService : IConsoleService
 				// (with an exact size the number prefix is constant, so AC2 comes before AC10)
 				.SelectMany(floor => floor.Spots)
 				.FirstOrDefault(spot => spot.Size == size && !spot.IsOccupied)
-				// No match → null → null id (see the note on Guid.Empty below)
+				// Take the DTO first, then ?.Id: a miss yields null. Selecting Id before
+				// FirstOrDefault would yield Guid.Empty (default of Guid), not null.
 				?.Id;
 
 		return new SpotMapDto { Floors = floorMaps, SuggestedSpotId = suggestedSpotId };
