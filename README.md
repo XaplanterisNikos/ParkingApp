@@ -9,7 +9,7 @@
 ![Auth](https://img.shields.io/badge/Auth-JWT%20%2B%20Identity-2ea44f)
 ![License](https://img.shields.io/badge/License-MIT-blue)
 
-> ⚠️ **Work in progress.** This is a learning-driven project built one vertical slice at a time. Owner setup (branches, floors, spots, employees) and employee sign-in with active-branch selection are complete; the operational core (shifts and vehicle movements) is being added next.
+> ⚠️ **Work in progress.** This is a learning-driven project built one vertical slice at a time. Owner setup (branches, floors, spots, employees) and employee sign-in with active-branch selection are complete. The operational core has started: the employee console shows live occupancy and a spot map with a suggested spot. Vehicle entry, exit, shifts and charging come next.
 
 ---
 
@@ -64,7 +64,12 @@ model from day one, not an afterthought.
 | Parking spots — bulk auto-generation with structured naming | **Done** |
 | Employees — owner creates staff, assigned to branches (many-to-many) | **Done** |
 | Employee login + active-branch selection (role-based routing, guards, session token) | **Done** |
-| Vehicle entries & shifts (employee operations) | Next |
+| Parking tickets model — derived occupancy, one active ticket per spot / per plate (DB-enforced) | **Done** |
+| Employee console — live occupancy per spot size | **Done** |
+| Employee console — spot map (floors, free/occupied spots) with a suggested spot | **Done** |
+| Vehicle entry — employee confirms or changes the suggested spot | Next |
+| Vehicle exit + list of active tickets | Planned |
+| Shifts & charging | Planned |
 | Statistics | Planned |
 
 **Feature Slice 1 (authentication) is complete end-to-end** — a seeded owner can log in from
@@ -117,10 +122,26 @@ it structurally rather than re-checking on every call. Employee session endpoint
 feature (`SessionController` / `SessionService`), employee-facing (`[Authorize(Roles = "Employee")]`),
 kept separate from both auth (who you are) and owner-only employee management (what the owner does).
 
-> **Note on `ParkingEntry`:** an early prototype (a flat "vehicle entry log") exists in the
-> codebase from the project's first iteration. It is currently **dormant** and will be
-> reworked when the operational slice (shifts + entries) is built. It is not part of the
-> current auth work.
+**Feature Slice 3b.1 (parking tickets & occupancy).** The operational model starts with a single
+entity: a `ParkingTicket` is one vehicle's stay in one spot, and a ticket with no exit time is
+**active**. Occupancy is therefore **derived**, never stored — there is no `IsOccupied` flag that could
+drift out of sync. Two concurrent cash desks are kept correct by the **database**, not by application
+code: filtered unique indexes allow at most one active ticket per spot and one per licence plate
+(within a company). The console endpoints are guarded by an `ActiveBranch` policy (Employee role +
+`activeBranchId` claim), and the branch is read **only** from the token through an
+`IActiveBranchProvider` — the client never sends a branch id. The branch filter is explicit in each
+query (the tenant filter stays automatic). The console shows occupancy cards per spot size. The early
+`ParkingEntry` prototype (unauthenticated, not tenant-scoped) was removed, and its table replaced.
+
+**Feature Slice 3b.2a (spot map & suggestion).** The console now draws the branch as a map: floor tabs
+in physical order, and each floor's spots as green (free) or red, hatched (occupied) boxes, grouped by
+size. When the employee declares a vehicle size, the server **suggests** the first free spot of exactly
+that size — ground floor first, then by distance from it — and the map jumps to that floor. The
+suggestion is only a proposal: nothing is reserved, and the employee will confirm it or pick another
+spot (a smaller vehicle may use a larger spot, never the reverse) when entry lands in the next slice.
+Spot numbers are prefixed strings (`AC2`, `AC10`), so the server orders them by size, then length,
+then value — sorting by size first keeps the prefix constant, which makes length order numeric order.
+One refresh reloads the occupancy cards and the map in parallel, so the two panels never disagree.
 
 ---
 
@@ -181,6 +202,19 @@ kept separate from both auth (who you are) and owner-only employee management (w
 - `AuthTokenHandler` (DelegatingHandler) now attaches the JWT to every request — consumers are
   token-free
 
+**September 2026 — Parking tickets, occupancy & spot map (Feature Slices 3b.1 / 3b.2a)**
+- Claim names centralised in `AppClaimTypes`; `IActiveBranchProvider` reads the active branch from
+  the token (parallel to `ITenantProvider`)
+- Removed the legacy `ParkingEntry` feature; migration replaces its table with `ParkingTickets`
+- `ParkingTicket` entity (active = no exit time) with filtered unique indexes: one active ticket per
+  spot, one per plate within a company; all relationships `Restrict` (tickets are financial records)
+- `ActiveBranch` authorization policy and `GET /api/console/occupancy` (total / occupied per size)
+- Client: `ConsoleConsumer` and presentational `OccupancyCards` on the console
+- `GET /api/console/spot-map?size=`: every floor of the active branch (including empty ones) with
+  its spots and live occupancy, plus an optional suggested spot of the requested size
+- Client: `ConsoleViewModel` spot-map state (vehicle size, shown floor derived from the latest map),
+  `RefreshAsync` loading cards and map in parallel, and a presentational `SpotMapPanel`
+
 **September 2026 — Employee login & active-branch selection (Feature Slice 3a)**
 - Role-based page guards (`[Authorize(Roles = "Owner")]` on owner pages) and post-login routing
   (owners land on `/`, employees on `/console`); `Microsoft.AspNetCore.Authorization` made a global
@@ -231,7 +265,7 @@ their HTTP conversation is type-safe.
 **Conventions adopted for this project:**
 
 - **Folder organisation:** services grouped by area inside the API (`Services/Auth`,
-  `Services/Parking`) — pragmatic feature folders rather than full Clean Architecture layering.
+  `Services/Branches`, `Services/Console`) — pragmatic feature folders rather than full Clean Architecture layering.
 - **Client-side layering:** a **Consumer** owns pure HTTP communication with the API
   (e.g. `AuthConsumer`), while a **Service** owns orchestration and state
   (e.g. `AuthService`: token storage + auth-state notification). Each layer has one responsibility.
@@ -247,11 +281,19 @@ their HTTP conversation is type-safe.
   (`HasQueryFilter`) driven by an `ITenantProvider` that reads the company id from the request's
   token. Every read is scoped to the caller's tenant automatically — isolation is structural, not
   a `WHERE` clause you must remember. Writes set `CompanyId` explicitly from the provider.
+- **Active branch from the token only:** employee operations read the branch through
+  `IActiveBranchProvider` (the `activeBranchId` claim) and are guarded by the `ActiveBranch`
+  policy. The branch filter is written explicitly in each query rather than as a global filter,
+  since owners legitimately work across all their branches.
+- **Derived state over stored state:** facts that follow from other data (e.g. whether a spot is
+  occupied) are computed from it, not stored beside it, so they cannot drift out of sync.
+- **Concurrency guarded by the database:** rules that two users could break at the same moment
+  (one active ticket per spot / per plate) are unique indexes, not application checks.
 - **Uniform responses:** every endpoint returns an `ApiResponse<T>` envelope
   (`Success` / `Message` / `Errors` / `Value`) via `.Ok(...)` / `.Fail(...)` factory methods.
 - **Typed actions:** controllers return `ActionResult<T>` so the success payload type is explicit
   (better Swagger docs, self-documenting signatures).
-- **Identifiers:** the tenant key (`Company.Id`) is a `Guid` generated with
+- **Identifiers:** primary keys are `Guid`s generated by SQL Server with
   `NEWSEQUENTIALID()` — non-guessable when exposed in tokens, without the index fragmentation
   of random client-side GUIDs.
 - **Auth model:** owner accounts are created by **seed only** (no public registration);
@@ -306,7 +348,8 @@ The non-secret JWT settings (`Issuer`, `Audience`, `ExpiryMinutes`) already live
 
 ### 3. Create the database
 
-Apply the EF Core migrations to build the schema (Identity tables + Company):
+Apply the EF Core migrations to build the full schema (Identity, companies, branches, floors,
+spots, employee assignments, parking tickets):
 
 ```bash
 # from the repo root
@@ -368,8 +411,12 @@ while staying close to the intended architecture.
   database's normal range.
 - **Read-only queries use `AsNoTracking`** and project straight to DTOs, so only the needed
   columns are fetched and no change-tracking overhead is paid on list reads.
-- **The high-volume table will be the movement log** (vehicle entries/exits), not the static
-  spot catalogue. That table will use pagination when it lands, and could be archived at scale.
+- **The high-volume table is the ticket log** (`ParkingTickets`), not the static spot catalogue.
+  Its filtered unique indexes cover only **active** tickets, so they stay small however long the
+  history grows, and double as fast lookups for "is this spot / plate inside?". History views will
+  use pagination, and old tickets could be archived at scale.
+- **The spot map loads a branch in two small queries** (floors; spots with occupancy) and does the
+  grouping, ordering and suggestion in memory — a few hundred rows at most, one round trip each.
 
 ---
 
@@ -387,6 +434,8 @@ while staying close to the intended architecture.
   re-issued token. Later requests rely on the claim without re-checking: tampering with it would break
   the signature and fail validation. The check lives in one place instead of being repeated on every
   operational endpoint.
+- **The client never sends a branch id.** Console endpoints take the branch from the token only, so
+  an employee cannot read or act on a branch they did not select.
 
 ---
 
@@ -405,6 +454,12 @@ documented here as conscious decisions, not oversights:
   the user logs in again. Refresh-token rotation is planned for a later phase.
 - **No account lockout / brute-force protection on login.** `lockoutOnFailure` is currently off;
   it can be enabled once a lockout policy is defined.
+- **Spot suggestions are not reserved.** Two desks asking at the same moment get the same suggestion;
+  the second confirmation will be rejected (409) and the employee picks again. Holds with expiry or
+  per-desk spot sharing are possible later, if real traffic calls for them.
+- **The console is a snapshot.** Occupancy and the spot map update on refresh, not live (no push).
+- **Automatic validation errors are not wrapped.** Model-binding failures (e.g. an unknown enum
+  value in a query string) return ASP.NET Core's default `ProblemDetails` 400, not `ApiResponse<T>`.
 
 ---
 
