@@ -3,6 +3,7 @@ using Microsoft.AspNetCore.Mvc;
 using ParkingApp.Api.Authorization;
 using ParkingApp.Api.Services.Console;
 using ParkingApp.Shared.Console;
+using ParkingApp.Shared.Pricing;
 using ParkingApp.Shared.Responses;
 using ParkingApp.Shared.Spots;
 
@@ -53,5 +54,16 @@ public class ConsoleController : ControllerBase
 		// Thin action: binding in, envelope out — all logic lives in the service
 		var spotMap = await _consoleService.GetSpotMapAsync(size);
 		return Ok(ApiResponse<SpotMapDto>.Ok(spotMap));
+	}
+
+	/// <summary>
+	/// Returns the overnight packages the customer can ask for at entry
+	/// (from the active branch's current price list).
+	/// </summary>
+	[HttpGet("overnight-packages")]
+	public async Task<ActionResult<ApiResponse<List<OvernightPackageDto>>>> GetOvernightPackages()
+	{
+		var packages = await _consoleService.GetOvernightPackagesAsync();
+		return Ok(ApiResponse<List<OvernightPackageDto>>.Ok(packages));
 	}
 }

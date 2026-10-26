@@ -6,6 +6,7 @@ using ParkingApp.Api.Authorization;
 using ParkingApp.Api.Data;
 using ParkingApp.Api.Data.Entities;
 using ParkingApp.Api.MultiTenancy;
+using ParkingApp.Api.Pricing;
 using ParkingApp.Api.Services.Auth;
 using ParkingApp.Api.Services.Branches;
 using ParkingApp.Api.Services.Companies;
@@ -104,6 +105,11 @@ builder.Services.AddScoped<IEmployeeService, EmployeeService>();
 builder.Services.AddScoped<ISessionService, SessionService>();
 builder.Services.AddScoped<IConsoleService, ConsoleService>();
 builder.Services.AddScoped<ITicketService, TicketService>();
+builder.Services.AddScoped<ITicketExitService, TicketExitService>(); // active tickets, quote, exit
+
+// The calculator has no state, so one instance serves every request.
+// Charges follow Athens time (night periods, holidays, overnight checkout).
+builder.Services.AddSingleton(new TariffCalculator(TimeZoneInfo.FindSystemTimeZoneById("Europe/Athens")));
 builder.Services.AddScoped<ITariffService, TariffService>();   // owner price lists
 builder.Services.AddScoped<IHolidayService, HolidayService>(); // owner holiday calendar
 

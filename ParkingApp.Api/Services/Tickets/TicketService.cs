@@ -99,7 +99,44 @@ public class TicketService : ITicketService
 				$"και δεν χωράει {SpotSizeInfo.NameOf(request.VehicleSize)}.");
 		}
 
-		// 5. Insert. We do NOT check first whether the spot is free: two desks could both pass
+		// 5. The price list of the moment: the ticket remembers it, so at exit the employee
+		//    can charge with it even if the owner changes the prices meanwhile.
+		//    No price list yet is allowed: the exit will then use the current one.
+		var tariffVersionId = await _dbContext.TariffVersions
+			.Where(version => version.BranchId == branchId)
+			.OrderByDescending(version => version.CreatedAt)
+			.Select(version => (Guid?)version.Id)
+			.FirstOrDefaultAsync();
+
+		// 6. An overnight package must come from that same price list and fit the spot,
+		//    because packages are priced per spot size.
+		string? packageName = null;
+
+		if (request.OvernightPackageId is { } packageId)
+		{
+			var package = await _dbContext.OvernightPackages
+				.Where(item => item.Id == packageId && item.TariffVersionId == tariffVersionId)
+				.Select(item => new { item.Name, item.Size })
+				.FirstOrDefaultAsync();
+
+			if (package is null)
+			{
+				return EntryResult.Failure(
+					EntryOutcome.Invalid, "Το πακέτο δεν ισχύει πλέον. Ανανεώστε τη σελίδα και διαλέξτε ξανά.");
+			}
+
+			if (package.Size != spot.Size)
+			{
+				return EntryResult.Failure(
+					EntryOutcome.Invalid,
+					$"Το πακέτο «{package.Name}» είναι για θέση {SpotSizeInfo.NameOf(package.Size)}, " +
+					$"ενώ η θέση {spot.Number} είναι {SpotSizeInfo.NameOf(spot.Size)}.");
+			}
+
+			packageName = package.Name;
+		}
+
+		// 7. Insert. We do NOT check first whether the spot is free: two desks could both pass
 		//    such a check. The unique indexes decide, and the loser gets a clear 409.
 		var ticket = new ParkingTicket
 		{
@@ -109,7 +146,9 @@ public class TicketService : ITicketService
 			LicensePlate = plate,
 			PlateKind = request.PlateKind,
 			EnteredAt = DateTimeOffset.UtcNow,
-			EnteredByEmployeeId = employeeId
+			EnteredByEmployeeId = employeeId,
+			TariffVersionId = tariffVersionId,
+			OvernightPackageId = request.OvernightPackageId
 		};
 
 		_dbContext.ParkingTickets.Add(ticket);
@@ -138,7 +177,8 @@ public class TicketService : ITicketService
 			SpotNumber = spot.Number,
 			LicensePlate = ticket.LicensePlate,
 			PlateKind = ticket.PlateKind,
-			EnteredAt = ticket.EnteredAt
+			EnteredAt = ticket.EnteredAt,
+			OvernightPackageName = packageName
 		});
 	}
 

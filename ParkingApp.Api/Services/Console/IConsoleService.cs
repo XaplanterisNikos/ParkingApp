@@ -1,4 +1,5 @@
 ﻿using ParkingApp.Shared.Console;
+using ParkingApp.Shared.Pricing;
 using ParkingApp.Shared.Spots;
 
 namespace ParkingApp.Api.Services.Console;
@@ -34,4 +35,14 @@ public interface IConsoleService
 	/// by the <c>ActiveBranch</c> policy.
 	/// </exception>
 	Task<SpotMapDto> GetSpotMapAsync(SpotSize? size);
+
+	/// <summary>
+	/// Returns the overnight packages of the active branch's current price list, for the entry form.
+	/// Empty when the branch has no price list or no packages.
+	/// </summary>
+	/// <exception cref="InvalidOperationException">
+	/// The caller's token has no active branch — the endpoint must be protected
+	/// by the <c>ActiveBranch</c> policy.
+	/// </exception>
+	Task<List<OvernightPackageDto>> GetOvernightPackagesAsync();
 }

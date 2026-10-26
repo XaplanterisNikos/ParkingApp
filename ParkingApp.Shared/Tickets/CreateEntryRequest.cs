@@ -22,4 +22,10 @@ public class CreateEntryRequest
 
 	/// <summary>The spot the employee confirmed (the suggested one or another one).</summary>
 	public Guid SpotId { get; set; }
+
+	/// <summary>
+	/// The overnight package the customer asked for, from the branch's current price list;
+	/// null for a normal stay. It must be for the size of the chosen spot.
+	/// </summary>
+	public Guid? OvernightPackageId { get; set; }
 }

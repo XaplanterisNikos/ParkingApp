@@ -2,6 +2,7 @@
 using ParkingApp.Api.Data;
 using ParkingApp.Api.MultiTenancy;
 using ParkingApp.Shared.Console;
+using ParkingApp.Shared.Pricing;
 using ParkingApp.Shared.Spots;
 
 namespace ParkingApp.Api.Services.Console;
@@ -138,5 +139,42 @@ public class ConsoleService : IConsoleService
 				?.Id;
 
 		return new SpotMapDto { Floors = floorMaps, SuggestedSpotId = suggestedSpotId };
+	}
+
+	/// <inheritdoc />
+	public async Task<List<OvernightPackageDto>> GetOvernightPackagesAsync()
+	{
+		// Second line of defence: the ActiveBranch policy should make this impossible
+		var branchId = _activeBranchProvider.CurrentBranchId
+			?? throw new InvalidOperationException(
+				"No active branch in the current token. Protect the endpoint with the ActiveBranch policy.");
+
+		// Only the CURRENT version's packages can be chosen at entry
+		var currentVersionId = await _dbContext.TariffVersions
+			.Where(version => version.BranchId == branchId)
+			.OrderByDescending(version => version.CreatedAt)
+			.Select(version => (Guid?)version.Id)
+			.FirstOrDefaultAsync();
+
+		if (currentVersionId is null)
+		{
+			return new List<OvernightPackageDto>();
+		}
+
+		return await _dbContext.OvernightPackages
+			.AsNoTracking()
+			.Where(package => package.TariffVersionId == currentVersionId)
+			.OrderBy(package => package.Size)
+			.ThenBy(package => package.Nights)
+			.ThenBy(package => package.Name)
+			.Select(package => new OvernightPackageDto
+			{
+				Id = package.Id,
+				Name = package.Name,
+				Size = package.Size,
+				Nights = package.Nights,
+				Price = package.Price
+			})
+			.ToListAsync();
 	}
 }

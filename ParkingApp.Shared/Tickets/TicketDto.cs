@@ -25,4 +25,16 @@ public class TicketDto
 
 	/// <summary>When the vehicle entered (UTC-based, with offset).</summary>
 	public DateTimeOffset EnteredAt { get; set; }
+
+	/// <summary>The name of the overnight package chosen at entry; null when the price list applies.</summary>
+	public string? OvernightPackageName { get; set; }
+
+	/// <summary>When the vehicle exited; null while the ticket is active.</summary>
+	public DateTimeOffset? ExitedAt { get; set; }
+
+	/// <summary>The amount charged at exit, VAT included; null while the ticket is active.</summary>
+	public decimal? AmountCharged { get; set; }
+
+	/// <summary>The VAT rate (percent) of the charge; null while the ticket is active.</summary>
+	public decimal? VatRate { get; set; }
 }

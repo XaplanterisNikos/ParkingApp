@@ -9,7 +9,7 @@ using ParkingApp.Shared.Tickets;
 namespace ParkingApp.Api.Controllers;
 
 /// <summary>
-/// Write endpoints of the employee console: vehicle entry (and, in a later slice, exit).
+/// Ticket endpoints of the employee console: vehicle entry, active tickets, charge preview and exit.
 /// Every endpoint requires an employee with a selected work branch.
 /// </summary>
 [ApiController]
@@ -20,13 +20,18 @@ public class TicketsController : ControllerBase
 	// Ticket logic, always scoped to the caller's active branch
 	private readonly ITicketService _ticketService;
 
+	// Exit logic: active tickets, charge preview and the exit itself
+	private readonly ITicketExitService _exitService;
+
 	/// <summary>
 	/// Creates the controller.
 	/// </summary>
-	/// <param name="ticketService">The ticket service.</param>
-	public TicketsController(ITicketService ticketService)
+	/// <param name="ticketService">The ticket service (entry).</param>
+	/// <param name="exitService">The exit service.</param>
+	public TicketsController(ITicketService ticketService, ITicketExitService exitService)
 	{
 		_ticketService = ticketService;
+		_exitService = exitService;
 	}
 
 	/// <summary>
@@ -53,4 +58,47 @@ public class TicketsController : ControllerBase
 			_ => BadRequest(ApiResponse<TicketDto>.Fail(result.Message!))
 		};
 	}
+
+	/// <summary>Returns the active tickets of the branch, newest first (for the plate/spot search).</summary>
+	[HttpGet("active")]
+	public async Task<ActionResult<ApiResponse<List<TicketDto>>>> GetActive()
+	{
+		var tickets = await _exitService.GetActiveAsync();
+		return Ok(ApiResponse<List<TicketDto>>.Ok(tickets));
+	}
+
+	/// <summary>
+	/// Returns what an exit would cost right now, with every allowed way to charge it.
+	/// </summary>
+	/// <param name="id">The active ticket.</param>
+	/// <returns>200 with the options; 404 when not in the branch; 409 when already closed or no price list.</returns>
+	[HttpGet("{id:guid}/quote")]
+	public async Task<ActionResult<ApiResponse<ExitQuoteDto>>> GetQuote([FromRoute] Guid id)
+	{
+		var result = await _exitService.GetQuoteAsync(id);
+		return ToActionResult(result);
+	}
+
+	/// <summary>
+	/// Closes the ticket with the chosen way to charge; the amount is calculated at this moment.
+	/// </summary>
+	/// <param name="id">The active ticket.</param>
+	/// <param name="request">The chosen price list version and overstay rule.</param>
+	/// <returns>200 with the closed ticket; 400 for an invalid choice; 404; 409 when already closed.</returns>
+	[HttpPost("{id:guid}/exit")]
+	public async Task<ActionResult<ApiResponse<TicketDto>>> Exit([FromRoute] Guid id, [FromBody] ExitTicketRequest request)
+	{
+		// The employee comes from the token, never from the request body
+		var result = await _exitService.ExitAsync(id, request, User.GetUserId());
+		return ToActionResult(result);
+	}
+
+	/// <summary>One place that maps exit outcomes to HTTP statuses.</summary>
+	private ActionResult<ApiResponse<T>> ToActionResult<T>(ExitResult<T> result) => result.Outcome switch
+	{
+		ExitOutcome.Success => Ok(ApiResponse<T>.Ok(result.Value!)),
+		ExitOutcome.TicketNotFound => NotFound(ApiResponse<T>.Fail(result.Message!)),
+		ExitOutcome.AlreadyExited or ExitOutcome.NoPriceList => Conflict(ApiResponse<T>.Fail(result.Message!)),
+		_ => BadRequest(ApiResponse<T>.Fail(result.Message!))
+	};
 }
