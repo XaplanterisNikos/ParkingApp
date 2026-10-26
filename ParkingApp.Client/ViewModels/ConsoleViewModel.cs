@@ -199,8 +199,8 @@ public class ConsoleViewModel
 	}
 
 	/// <summary>
-	/// Loads (or reloads) the active branch's occupancy. Also used by the refresh
-	/// button, since the console is a snapshot and does not update live.
+	/// Loads (or reloads) the active branch's occupancy. Called through
+	/// <see cref="RefreshAsync"/>, so the cards and the spot map are always refreshed together.
 	/// </summary>
 	public async Task LoadOccupancyAsync()
 	{

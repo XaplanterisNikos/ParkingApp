@@ -36,9 +36,9 @@
                         TotalSpots="_viewModel.TotalSpots"
                         OccupiedSpots="_viewModel.OccupiedSpots"
                         FreeSpots="_viewModel.FreeSpots"
-                        IsLoading="_viewModel.IsLoadingOccupancy"
+                        IsLoading="_viewModel.IsLoadingOccupancy || _viewModel.IsLoadingSpotMap"
                         Error="@_viewModel.OccupancyError"
-                        OnRefresh="_viewModel.LoadOccupancyAsync" />
+                        OnRefresh="_viewModel.RefreshAsync" />
 
         <SpotMapPanel Map="_viewModel.SpotMap"
                       SelectedFloor="_viewModel.SelectedFloor"
