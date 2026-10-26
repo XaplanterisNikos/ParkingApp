@@ -10,16 +10,19 @@
 @inject NavigationManager Navigation
 @inject IConsoleConsumer ConsoleConsumer
 
+<PageTitle>Ταμείο · ParkingApp</PageTitle>
+
 <div class="console-page">
-    <h1>Parking console</h1>
+    @* The branch name is already in the top bar; the heading is for screen readers and focus *@
+    <h1 class="visually-hidden">Ταμείο</h1>
 
     @if (_viewModel is null || _viewModel.IsLoading)
     {
-        <p class="muted">Loading...</p>
+        <MudProgressLinear Indeterminate="true" Color="Color.Primary" />
     }
     else if (!string.IsNullOrEmpty(_viewModel.Error))
     {
-        <p class="error" role="alert">@_viewModel.Error</p>
+        <MudAlert Severity="Severity.Error">@_viewModel.Error</MudAlert>
     }
     else if (_viewModel.ShowBranchPicker)
     {
@@ -30,7 +33,7 @@
     }
     else
     {
-        @* Ready: branch selected. The view model owns the data; the cards only display it. *@
+        @* Ready: branch selected. The view model owns the data; the panels only display it. *@
         @* One refresh reloads BOTH panels, and stays disabled until both are done — they must never disagree *@
         <OccupancyCards Items="_viewModel.Occupancy"
                         TotalSpots="_viewModel.TotalSpots"

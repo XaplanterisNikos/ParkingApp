@@ -213,7 +213,7 @@ public class ConsoleViewModel
 
 			if (result is not { Success: true, Value: not null })
 			{
-				OccupancyError = result?.Message ?? "Could not load occupancy.";
+				OccupancyError = result?.Message ?? "Δεν ήταν δυνατή η φόρτωση της πληρότητας.";
 				return;
 			}
 
@@ -222,7 +222,7 @@ public class ConsoleViewModel
 		catch
 		{
 			// Non-2xx (e.g. 403/500) or network failure — same handling as the other view models
-			OccupancyError = "Could not reach the server.";
+			OccupancyError = "Δεν υπάρχει σύνδεση με τον server. Δοκιμάστε ξανά σε λίγο.";
 		}
 		finally
 		{
@@ -250,7 +250,7 @@ public class ConsoleViewModel
 			if (result is not { Success: true, Value: not null })
 			{
 				// The previous map stays in memory, but the page shows the error instead of it
-				SpotMapError = result?.Message ?? "Could not load the spot map.";
+				SpotMapError = result?.Message ?? "Δεν ήταν δυνατή η φόρτωση του χάρτη θέσεων.";
 				return;
 			}
 
@@ -260,7 +260,7 @@ public class ConsoleViewModel
 		catch
 		{
 			// Non-2xx (e.g. 400/403/500) or network failure — same handling as occupancy
-			SpotMapError = "Could not reach the server.";
+			SpotMapError = "Δεν υπάρχει σύνδεση με τον server. Δοκιμάστε ξανά σε λίγο.";
 		}
 		finally
 		{

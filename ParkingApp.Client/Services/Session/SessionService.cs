@@ -31,7 +31,7 @@ public class SessionService : ISessionService
 
 		if (result is null || !result.Success || result.Value is null)
 		{
-			var message = result?.Message ?? "Could not load your branches.";
+			var message = result?.Message ?? "Δεν ήταν δυνατή η φόρτωση των υποκαταστημάτων σας.";
 			return (false, message, new List<BranchOptionDto>());
 		}
 
@@ -46,7 +46,7 @@ public class SessionService : ISessionService
 
 		if (result is null || !result.Success || result.Value is null)
 		{
-			var message = result?.Message ?? "Could not select the branch.";
+			var message = result?.Message ?? "Δεν ήταν δυνατή η επιλογή του υποκαταστήματος.";
 			return (false, message);
 		}
 

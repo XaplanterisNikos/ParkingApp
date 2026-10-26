@@ -3,49 +3,58 @@
 @using ParkingApp.Shared.Spots
 
 @* Presentational: shows occupancy it is given; loading and refreshing belong to the page's view model. *@
-<section class="occupancy">
-    <div class="occupancy-header">
-        <h2>Occupancy</h2>
-        <button class="refresh-button" @onclick="OnRefresh" disabled="@IsLoading">
-            @(IsLoading ? "Refreshing..." : "Refresh")
-        </button>
-    </div>
-
+<MudPaper Outlined="true" Class="occupancy-strip">
     @if (!string.IsNullOrEmpty(Error))
     {
         @* A failed load must not look like an empty branch *@
-        <p class="error" role="alert">@Error</p>
+        <MudAlert Severity="Severity.Error" Dense="true" Class="occupancy-message">@Error</MudAlert>
     }
     else if (Items.Count == 0)
     {
-        <p class="muted">No spots in this branch yet.</p>
+        <span class="muted occupancy-message">Δεν υπάρχουν θέσεις σε αυτό το υποκατάστημα ακόμα.</span>
     }
     else
     {
-        <div class="cards">
-            @* Branch-wide summary first *@
-            <div class="card summary @(FreeSpots == 0 ? "full" : null)">
-                <span class="card-title">All spots</span>
-                <span class="card-free">@FreeSpots</span>
-                <span class="card-label">free</span>
-                <span class="card-detail">Occupied @OccupiedSpots / @TotalSpots</span>
-            </div>
+        @* Branch-wide summary first, then one meter per size *@
+        <div class="occupancy-total">
+            <span class="occupancy-total-value">@FreeSpots</span>
+            <span class="muted">ελεύθερες από @TotalSpots</span>
+        </div>
 
+        <div class="occupancy-sizes">
             @foreach (var item in Items)
             {
                 // Free is derived here too — the DTO only carries Total and Occupied
                 var free = item.Total - item.Occupied;
+                var percent = item.Total == 0 ? 0 : 100.0 * free / item.Total;
 
-                <div class="card @(free == 0 ? "full" : null)">
-                    <span class="card-title">@SpotSizeInfo.NameOf(item.Size)</span>
-                    <span class="card-free">@free</span>
-                    <span class="card-label">free</span>
-                    <span class="card-detail">Occupied @item.Occupied / @item.Total</span>
+                <div class="occupancy-size">
+                    <div class="occupancy-size-line">
+                        <span class="muted">@SpotSizeInfo.NameOf(item.Size)</span>
+                        @if (free == 0)
+                        {
+                            <span class="occupancy-full">πλήρες</span>
+                        }
+                        else
+                        {
+                            <span class="tabular occupancy-count">@free / @item.Total</span>
+                        }
+                    </div>
+                    <MudProgressLinear Value="percent" Color="Color.Success" Rounded="true" aria-hidden="true" />
                 </div>
             }
         </div>
     }
-</section>
+
+    @* Refresh stays available even after an error *@
+    <MudIconButton Icon="@Icons.Material.Outlined.Refresh"
+                   Variant="Variant.Outlined"
+                   aria-label="Ανανέωση"
+                   title="Ανανέωση"
+                   Disabled="@IsLoading"
+                   OnClick="OnRefresh"
+                   Class="occupancy-refresh" />
+</MudPaper>
 
 @code {
     /// <summary>Occupancy per spot size category (only sizes that exist in the branch).</summary>

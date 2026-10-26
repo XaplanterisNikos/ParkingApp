@@ -4,97 +4,121 @@
 @using ParkingApp.Shared.Spots
 
 @* Presentational: shows the spot map it is given; loading, suggestion and floor rules belong to the view model. *@
-<section class="spot-map">
+<MudPaper Outlined="true" Class="section-card spot-map">
+    @* Vehicle size drives the server's suggestion; pressing the selected size again clears it *@
     <div class="spot-map-header">
-        <h2>Spot map</h2>
-        @if (IsLoading)
-        {
-            <span class="muted">Loading...</span>
-        }
+        <span class="spot-map-label">Όχημα</span>
+        <MudToggleGroup T="SpotSize?"
+                        Value="SelectedVehicleSize"
+                        ValueChanged="OnSelectVehicleSize"
+                        SelectionMode="SelectionMode.ToggleSelection"
+                        Color="Color.Primary"
+                        Disabled="@IsLoading"
+                        aria-label="Μέγεθος οχήματος"
+                        Class="vehicle-toggle">
+            @foreach (var size in Enum.GetValues<SpotSize>())
+            {
+                <MudToggleItem T="SpotSize?" Value="@size" Text="@SpotSizeInfo.NameOf(size)" />
+            }
+        </MudToggleGroup>
     </div>
 
-    @* Vehicle size drives the server's suggestion; clicking the selected size again clears it *@
-    <div class="size-picker" role="group" aria-label="Vehicle size">
-        @foreach (var size in Enum.GetValues<SpotSize>())
-        {
-            var isSelected = size == SelectedVehicleSize;
-
-            <button class="size-button @(isSelected ? "active" : null)"
-                    aria-pressed="@(isSelected ? "true" : "false")"
-                    disabled="@IsLoading"
-                    @onclick="() => OnSelectVehicleSize.InvokeAsync(isSelected ? (SpotSize?)null : size)">
-                @SpotSizeInfo.NameOf(size)
-            </button>
-        }
-    </div>
+    @* Thin bar while reloading; the old map stays visible underneath *@
+    @if (IsLoading)
+    {
+        <MudProgressLinear Indeterminate="true" Color="Color.Primary" />
+    }
 
     @if (!string.IsNullOrEmpty(Error))
     {
         @* A failed load must not look like an empty branch *@
-        <p class="error" role="alert">@Error</p>
+        <MudAlert Severity="Severity.Error">@Error</MudAlert>
     }
     else if (Map.Floors.Count == 0)
     {
-        <p class="muted">No floors in this branch yet.</p>
+        <p class="muted">Δεν υπάρχουν όροφοι σε αυτό το υποκατάστημα ακόμα.</p>
     }
     else
     {
         @if (SelectedVehicleSize is { } requestedSize && Map.SuggestedSpotId is null)
         {
-            <p class="muted" role="status">
-                No free @SpotSizeInfo.NameOf(requestedSize) spot — a larger free spot can still be used.
-            </p>
+            <MudAlert Severity="Severity.Warning" Dense="true" role="status">
+                Δεν υπάρχει ελεύθερη θέση για @SpotSizeInfo.NameOf(requestedSize). Μπορεί να χρησιμοποιηθεί μεγαλύτερη ελεύθερη θέση.
+            </MudAlert>
         }
 
-        @* Floors in physical order; each tab shows its free spots and whether it holds the suggestion *@
-        <div class="floor-tabs">
-            @foreach (var floor in Map.Floors)
-            {
-                var isSelected = floor.Type == SelectedFloor?.Type;
-                var free = floor.Spots.Count(spot => !spot.IsOccupied);
-                var hasSuggestion = floor.Spots.Any(spot => spot.Id == Map.SuggestedSpotId);
+        <div class="spot-map-body">
+            @* Floors in building order: the highest at the top, basements at the bottom *@
+            <nav class="floor-list spot-map-floors" aria-label="Όροφοι">
+                @foreach (var floor in Map.Floors.OrderByDescending(floor => (int)floor.Type))
+                {
+                    var free = floor.Spots.Count(spot => !spot.IsOccupied);
+                    var percent = floor.Spots.Count == 0 ? 0 : 100.0 * free / floor.Spots.Count;
 
-                <button class="floor-tab @(isSelected ? "active" : null)"
-                        aria-pressed="@(isSelected ? "true" : "false")"
-                        @onclick="() => OnSelectFloor.InvokeAsync(floor.Type)">
-                    @FloorTypeInfo.NameOf(floor.Type)
-                    <span class="floor-free">@free free</span>
-                    @if (hasSuggestion)
+                    <FloorButton Type="floor.Type"
+                                 Selected="floor.Type == SelectedFloor?.Type"
+                                 Detail="@($"{free} ελεύθερες")"
+                                 Highlight="floor.Spots.Any(spot => spot.Id == Map.SuggestedSpotId)"
+                                 HighlightTitle="Εδώ είναι η προτεινόμενη θέση"
+                                 OnClick="() => OnSelectFloor.InvokeAsync(floor.Type)">
+                        @* A button may only hold inline content, so the bar is made of spans *@
+                        <span class="meter" aria-hidden="true"><span class="meter-fill" style="width: @(percent.ToString("0", System.Globalization.CultureInfo.InvariantCulture))%"></span></span>
+                    </FloorButton>
+                }
+            </nav>
+
+            <div class="spot-map-floor">
+                @if (SelectedFloor is null || SelectedFloor.Spots.Count == 0)
+                {
+                    <p class="muted">Δεν υπάρχουν θέσεις σε αυτόν τον όροφο ακόμα.</p>
+                }
+                else
+                {
+                    <div class="spot-map-floor-header">
+                        <MudText Typo="Typo.h5" HtmlTag="h2">@FloorTypeInfo.NameOf(SelectedFloor.Type)</MudText>
+
+                        @* The legend says in words what the bays show *@
+                        <div class="bay-legend" aria-hidden="true">
+                            <span><span class="legend-swatch legend-free"></span>Ελεύθερη</span>
+                            <span><span class="legend-swatch legend-occupied"></span>Πιασμένη</span>
+                            <span><span class="legend-swatch legend-selected"></span>Προτεινόμενη</span>
+                        </div>
+                    </div>
+
+                    @* One row per size; the server's order (size, then number) survives GroupBy *@
+                    @foreach (var sizeGroup in SelectedFloor.Spots.GroupBy(spot => spot.Size))
                     {
-                        <span class="floor-star" title="The suggested spot is on this floor">★</span>
-                    }
-                </button>
-            }
-        </div>
-
-        @if (SelectedFloor is null || SelectedFloor.Spots.Count == 0)
-        {
-            <p class="muted">No spots on this floor yet.</p>
-        }
-        else
-        {
-            @* One row per size; the server's order (size, then number) survives GroupBy *@
-            @foreach (var sizeGroup in SelectedFloor.Spots.GroupBy(spot => spot.Size))
-            {
-                <div class="size-row">
-                    <span class="size-row-title">@SpotSizeInfo.NameOf(sizeGroup.Key)</span>
-                    <div class="spots">
-                        @foreach (var spot in sizeGroup)
-                        {
-                            <div class="@SpotCss(spot)" title="@SpotTitle(spot)">
-                                @spot.Number
-                                @if (spot.Id == Map.SuggestedSpotId)
+                        <div class="bay-group">
+                            <span class="bay-group-title">@SpotSizeInfo.NameOf(sizeGroup.Key)</span>
+                            <div class="bay-row">
+                                @foreach (var spot in sizeGroup)
                                 {
-                                    <span class="spot-star" aria-hidden="true">★</span>
+                                    var isSuggested = spot.Id == Map.SuggestedSpotId;
+
+                                    <span class="@BayCss(spot)" title="@BayTitle(spot)">
+                                        @if (isSuggested)
+                                        {
+                                            <MudIcon Icon="@Icons.Material.Filled.Star" Size="Size.Small" aria-hidden="true" />
+                                        }
+                                        else if (spot.IsOccupied)
+                                        {
+                                            <MudIcon Icon="@Icons.Material.Outlined.DirectionsCar" Size="Size.Small" aria-hidden="true" />
+                                        }
+                                        else if (!IsTooSmall(spot))
+                                        {
+                                            <span class="bay-lamp" aria-hidden="true"></span>
+                                        }
+                                        <span>@spot.Number</span>
+                                    </span>
                                 }
                             </div>
-                        }
-                    </div>
-                </div>
-            }
-        }
+                        </div>
+                    }
+                }
+            </div>
+        </div>
     }
-</section>
+</MudPaper>
 
 @code {
     /// <summary>The active branch's spot map (floors in physical order, spots in display order).</summary>
@@ -119,29 +143,29 @@
     [Parameter] public EventCallback<FloorType> OnSelectFloor { get; set; }
 
     /// <summary>
-    /// CSS classes of a spot box: its status, whether it is the suggestion,
-    /// and whether it is too small for the declared vehicle.
+    /// Enum values are ordered by size (Motorcycle &lt; Car &lt; LargeCar), so "&lt;" means "does not fit".
+    /// Visual hint only — the server enforces the rule when the entry is confirmed (3β.2β).
     /// </summary>
-    private string SpotCss(SpotStatusDto spot)
+    private bool IsTooSmall(SpotStatusDto spot) =>
+        SelectedVehicleSize is { } size && spot.Size < size;
+
+    /// <summary>CSS classes of a bay: the suggestion first, then occupied, too small, or free.</summary>
+    private string BayCss(SpotStatusDto spot)
     {
-        var css = spot.IsOccupied ? "spot occupied" : "spot free";
-
-        if (spot.Id == Map.SuggestedSpotId)
-        {
-            css += " suggested";
-        }
-
-        // Enum values are ordered by size (Motorcycle < Car < LargeCar), so "<" means "does not fit".
-        // Visual hint only — the server enforces the rule when the entry is confirmed (3β.2β).
-        if (SelectedVehicleSize is { } size && spot.Size < size)
-        {
-            css += " too-small";
-        }
-
-        return css;
+        if (spot.Id == Map.SuggestedSpotId) return "bay bay-selected";
+        if (spot.IsOccupied) return "bay bay-occupied";
+        if (IsTooSmall(spot)) return "bay bay-too-small";
+        return "bay";
     }
 
     /// <summary>Tooltip with the same information as the colours, in words — colour is never the only cue.</summary>
-    private string SpotTitle(SpotStatusDto spot) =>
-        $"{spot.Number} · {SpotSizeInfo.NameOf(spot.Size)} · {(spot.IsOccupied ? "occupied" : "free")}";
+    private string BayTitle(SpotStatusDto spot)
+    {
+        var status = spot.Id == Map.SuggestedSpotId ? "προτεινόμενη"
+            : spot.IsOccupied ? "πιασμένη"
+            : IsTooSmall(spot) ? "μικρή για το όχημα"
+            : "ελεύθερη";
+
+        return $"{spot.Number} · {SpotSizeInfo.NameOf(spot.Size)} · {status}";
+    }
 }

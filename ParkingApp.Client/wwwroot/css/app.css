@@ -501,3 +501,210 @@ code {
 .form-row > .mud-button-root {
     min-height: 56px;
 }
+
+
+/* ------------------------------------------------------------------
+   Employee console
+   ------------------------------------------------------------------ */
+
+/* Hidden on screen, still read by screen readers */
+.visually-hidden {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip: rect(0 0 0 0);
+    white-space: nowrap;
+}
+
+.console-page {
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+}
+
+/* Occupancy: one strip with the total and a meter per size */
+.occupancy-strip {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 28px;
+    padding: 18px 22px;
+    border-radius: 12px !important;
+}
+
+.occupancy-total {
+    display: flex;
+    align-items: baseline;
+    gap: 10px;
+    min-width: 200px;
+}
+
+.occupancy-total-value {
+    font-size: 2.5rem;
+    font-weight: 700;
+    line-height: 1;
+    font-variant-numeric: tabular-nums;
+}
+
+.occupancy-sizes {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 28px;
+    flex: 1 1 420px;
+}
+
+.occupancy-size {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    flex: 1 1 130px;
+    min-width: 130px;
+}
+
+.occupancy-size-line {
+    display: flex;
+    justify-content: space-between;
+    gap: 12px;
+}
+
+.occupancy-count {
+    font-weight: 600;
+}
+
+.occupancy-full {
+    font-weight: 600;
+    color: var(--mud-palette-error);
+}
+
+.occupancy-message {
+    flex: 1 1 auto;
+}
+
+.occupancy-refresh {
+    margin-left: auto;
+}
+
+/* Spot map: vehicle choice on top, floors on the left, bays on the right */
+.spot-map-header {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 14px;
+}
+
+.spot-map-label {
+    font-weight: 600;
+}
+
+.vehicle-toggle .mud-button-root {
+    min-height: 44px;
+    padding: 0 18px;
+}
+
+.spot-map-body {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 22px;
+    align-items: flex-start;
+}
+
+.spot-map-floors {
+    flex: 1 1 210px;
+    max-width: 240px;
+}
+
+.spot-map-floor {
+    flex: 999 1 380px;
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+}
+
+.spot-map-floor-header {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: 12px;
+}
+
+/* Thin free-spots meter inside a floor button */
+.meter {
+    display: block;
+    height: 4px;
+    margin-top: 4px;
+    border-radius: 2px;
+    background: #E8ECF0;
+    overflow: hidden;
+}
+
+.meter-fill {
+    display: block;
+    height: 100%;
+    background: var(--mud-palette-success);
+}
+
+/* Legend: small bay shapes with a word each */
+.bay-legend {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 14px;
+    color: var(--mud-palette-text-secondary);
+    font-size: .8125rem;
+}
+
+    .bay-legend > span {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+    }
+
+.legend-swatch {
+    width: 14px;
+    height: 14px;
+    box-sizing: border-box;
+    border-radius: 3px 3px 0 0;
+}
+
+.legend-free {
+    border: 2px solid #8C97A4;
+    border-bottom: none;
+}
+
+.legend-occupied {
+    background: #2B3540;
+}
+
+.legend-selected {
+    background: var(--mud-palette-primary);
+}
+
+/* Bay states. Free = white with a green lamp; occupied = dark; suggested = blue.
+   They differ in lightness too, so they can be told apart without color. */
+.bay-lamp {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: var(--mud-palette-success);
+}
+
+.bay-occupied {
+    background: #2B3540;
+    border-color: #2B3540;
+    color: #E6EAEE;
+}
+
+.bay-selected {
+    background: var(--mud-palette-primary);
+    border-color: var(--mud-palette-primary);
+    color: var(--mud-palette-primary-text);
+}
+
+.bay-too-small {
+    background: transparent;
+    border-style: dashed;
+    border-color: #CDD3DA;
+    color: #A3ACB7;
+}

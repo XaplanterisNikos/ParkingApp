@@ -1,25 +1,31 @@
 ﻿@namespace ParkingApp.Client.Components
 @using ParkingApp.Shared.Session
 
+@* Forced choice: no close button and no click-outside; the only way out is to sign out *@
 <div class="modal-backdrop">
     <div class="modal-card" role="dialog" aria-modal="true" aria-labelledby="picker-title">
-        <h2 id="picker-title">Choose your branch</h2>
-        <p class="modal-subtitle">Select the branch you are working in for this session.</p>
+        <div class="modal-header">
+            <MudText Typo="Typo.h5" HtmlTag="h2" id="picker-title">Σε ποιο υποκατάστημα δουλεύετε;</MudText>
+            <span class="muted">Η επιλογή ισχύει μέχρι να αποσυνδεθείτε.</span>
+        </div>
 
         <div class="branch-list">
             @foreach (var branch in Branches)
             {
-                <button class="branch-option"
+                <button type="button"
+                        class="branch-option"
                         @onclick="() => OnSelect.InvokeAsync(branch.Id)"
                         disabled="@IsSelecting">
-                    @branch.Name
+                    <MudIcon Icon="@Icons.Material.Outlined.Apartment" Color="Color.Secondary" aria-hidden="true" />
+                    <span class="branch-option-name">@branch.Name</span>
+                    <MudIcon Icon="@Icons.Material.Outlined.ChevronRight" Color="Color.Secondary" aria-hidden="true" />
                 </button>
             }
         </div>
 
-        <button class="modal-logout" @onclick="OnLogout" disabled="@IsSelecting">
-            Sign out
-        </button>
+        <MudButton Variant="Variant.Text" OnClick="OnLogout" Disabled="@IsSelecting" Class="modal-logout">
+            Αποσύνδεση
+        </MudButton>
     </div>
 </div>
 
