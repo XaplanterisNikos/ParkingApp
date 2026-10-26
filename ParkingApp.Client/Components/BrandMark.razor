@@ -1,0 +1,12 @@
+@namespace ParkingApp.Client.Components
+
+@* The app mark: a parking sign "P" and the product name *@
+<a href="@Href" class="brand">
+    <span class="brand-mark" aria-hidden="true">P</span>
+    <span class="brand-name">ParkingApp</span>
+</a>
+
+@code {
+    /// <summary>Where the mark links to. Each role has its own start page.</summary>
+    [Parameter] public string Href { get; set; } = "";
+}

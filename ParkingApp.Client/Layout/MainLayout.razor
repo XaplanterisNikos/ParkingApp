@@ -8,55 +8,87 @@
 @inject AuthenticationStateProvider AuthStateProvider
 @inject NavigationManager Navigation
 
-<AuthorizeView>
-    <Authorized>
-        <nav class="navbar">
-            <div class="nav-left">
-                <AuthorizeView Roles="Owner" Context="ownerNav">
-                    <a href="" class="brand">ParkingApp</a>
-                    <a href="branches" class="nav-link">Branches</a>
-                    <a href="employees" class="nav-link">Employees</a>
-                </AuthorizeView>
-                <AuthorizeView Roles="Employee" Context="employeeNav">
-                    <a href="console" class="brand">ParkingApp</a>
-                    <a href="console" class="nav-link">Console</a>
-                    @{
-                        var activeBranch = employeeNav.User.FindFirst(AppClaimTypes.ActiveBranchName)?.Value;
-                    }
-                    @if (!string.IsNullOrEmpty(activeBranch))
-                    {
-                        <span class="nav-branch">Branch: @activeBranch</span>
-                    }
-                </AuthorizeView>
-            </div>
-            <div class="nav-right">
-                @if (_viewModel is not null)
-                {
-                    <span class="nav-user">
-                        @_viewModel.UserName
-                        @if (!string.IsNullOrEmpty(_viewModel.CompanyName))
-                        {
-                            <span class="nav-company">· @_viewModel.CompanyName</span>
-                        }
-                    </span>
-                    <button class="nav-logout" @onclick="_viewModel.LogoutAsync">Sign out</button>
-                }
-            </div>
-        </nav>
-    </Authorized>
-</AuthorizeView>
+<MudLayout>
+    @* Owner: side menu. On small screens the menu is hidden and a top bar opens it. *@
+    <AuthorizeView Roles="Owner" Context="ownerNav">
+        <MudAppBar Elevation="0" Class="app-bar owner-app-bar">
+            <MudIconButton Icon="@Icons.Material.Outlined.Menu" Color="Color.Inherit" Edge="Edge.Start"
+                           aria-label="Μενού" OnClick="ToggleDrawer" />
+            <BrandMark />
+        </MudAppBar>
 
-<main class="page-content">
-    @Body
-</main>
+        <MudDrawer @bind-Open="_drawerOpen" Elevation="0" Variant="DrawerVariant.Responsive" Class="app-drawer">
+            <div class="drawer-body">
+                <div class="drawer-brand">
+                    <BrandMark />
+                </div>
+
+                <MudNavMenu Class="drawer-nav">
+                    <MudNavLink Href="" Match="NavLinkMatch.All" Icon="@Icons.Material.Outlined.Dashboard">Επισκόπηση</MudNavLink>
+                    <MudNavLink Href="branches" Icon="@Icons.Material.Outlined.Apartment">Υποκαταστήματα</MudNavLink>
+                    <MudNavLink Href="employees" Icon="@Icons.Material.Outlined.Group">Υπάλληλοι</MudNavLink>
+                </MudNavMenu>
+
+                <div class="drawer-footer">
+                    @if (_viewModel is not null)
+                    {
+                        <div class="drawer-account">
+                            <span class="drawer-company">@_viewModel.CompanyName</span>
+                            <span class="drawer-user">@_viewModel.UserName</span>
+                        </div>
+                        <MudButton Variant="Variant.Outlined" FullWidth="true" OnClick="_viewModel.LogoutAsync">
+                            Αποσύνδεση
+                        </MudButton>
+                    }
+                </div>
+            </div>
+        </MudDrawer>
+    </AuthorizeView>
+
+    @* Employee: one top bar with the active branch *@
+    <AuthorizeView Roles="Employee" Context="employeeNav">
+        <MudAppBar Elevation="0" Class="app-bar">
+            <BrandMark Href="console" />
+            @{
+                var activeBranch = employeeNav.User.FindFirst(AppClaimTypes.ActiveBranchName)?.Value;
+            }
+            @if (!string.IsNullOrEmpty(activeBranch))
+            {
+                <span class="app-bar-divider" aria-hidden="true"></span>
+                <span class="app-bar-branch">@activeBranch</span>
+            }
+            <MudSpacer />
+            @if (_viewModel is not null)
+            {
+                <span class="app-bar-user">@_viewModel.UserName</span>
+                <MudButton Variant="Variant.Outlined" OnClick="_viewModel.LogoutAsync">Αποσύνδεση</MudButton>
+            }
+        </MudAppBar>
+    </AuthorizeView>
+
+    <MudMainContent>
+        <MudContainer MaxWidth="MaxWidth.Large" Class="page-content">
+            @Body
+        </MudContainer>
+    </MudMainContent>
+</MudLayout>
 
 @code {
     private MainLayoutViewModel? _viewModel;
+
+    /// <summary>Whether the owner's side menu is open. The drawer closes itself on small screens.</summary>
+    private bool _drawerOpen = true;
 
     protected override async Task OnInitializedAsync()
     {
         _viewModel = new MainLayoutViewModel(
             CompaniesConsumer, AuthService, AuthStateProvider, Navigation);
         await _viewModel.InitializeAsync();
+    }
+
+    /// <summary>Opens or closes the owner's side menu (small screens).</summary>
+    private void ToggleDrawer()
+    {
+        _drawerOpen = !_drawerOpen;
     }
 }

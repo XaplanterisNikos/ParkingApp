@@ -59,7 +59,7 @@
     }
 
         .loading-progress circle:last-child {
-            stroke: #1b6ec2;
+            stroke: #1F4FBF;
             stroke-dasharray: calc(3.141 * var(--blazor-load-percentage, 0%) * 0.8), 500%;
             transition: stroke-dasharray 0.05s ease-in-out;
         }
@@ -86,4 +86,129 @@ code {
 
 .form-floating > .form-control-plaintext:focus::placeholder, .form-floating > .form-control:focus::placeholder {
     text-align: start;
+}
+
+/* ------------------------------------------------------------------
+   App shell (MudBlazor). Colors come from Theme/ParkingTheme.cs.
+   ------------------------------------------------------------------ */
+
+/* Brand mark: the parking sign "P" and the product name */
+.brand {
+    display: inline-flex;
+    align-items: center;
+    gap: 10px;
+    color: var(--mud-palette-text-primary);
+    text-decoration: none;
+}
+
+.brand-mark {
+    width: 34px;
+    height: 34px;
+    border-radius: 7px;
+    background: var(--mud-palette-primary);
+    color: var(--mud-palette-primary-text);
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: 700;
+    font-size: 21px;
+    line-height: 1;
+}
+
+.brand-name {
+    font-weight: 600;
+    font-size: 1rem;
+}
+
+/* Top bar: white, with a thin line instead of a shadow */
+.app-bar {
+    border-bottom: 1px solid var(--mud-palette-lines-default);
+    gap: 16px;
+}
+
+.app-bar-divider {
+    width: 1px;
+    height: 24px;
+    background: var(--mud-palette-lines-default);
+}
+
+.app-bar-branch {
+    font-weight: 600;
+}
+
+.app-bar-user {
+    color: var(--mud-palette-text-secondary);
+}
+
+/* The owner's top bar exists only to open the menu on small screens */
+@media (min-width: 960px) {
+    .owner-app-bar {
+        display: none;
+    }
+
+    .owner-app-bar ~ .mud-main-content {
+        padding-top: 0;
+    }
+}
+
+/* Owner side menu */
+.app-drawer {
+    border-right: 1px solid var(--mud-palette-lines-default);
+}
+
+.drawer-body {
+    display: flex;
+    flex-direction: column;
+    gap: 24px;
+    height: 100%;
+    padding: 20px 14px;
+    box-sizing: border-box;
+}
+
+.drawer-brand {
+    padding: 0 8px;
+}
+
+.drawer-nav .mud-nav-link {
+    border-radius: 8px;
+    min-height: 44px;
+}
+
+.drawer-nav .mud-nav-link.active {
+    background: #EEF3FC;
+    font-weight: 600;
+}
+
+.drawer-footer {
+    margin-top: auto;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    padding: 14px 8px 0;
+    border-top: 1px solid var(--mud-palette-lines-default);
+}
+
+.drawer-account {
+    display: flex;
+    flex-direction: column;
+}
+
+.drawer-company {
+    font-weight: 600;
+}
+
+.drawer-user {
+    color: var(--mud-palette-text-secondary);
+    font-size: .8125rem;
+}
+
+/* Page area */
+.page-content {
+    padding-top: 28px;
+    padding-bottom: 40px;
+}
+
+/* Numbers that change (counts, spot numbers) keep the same width */
+.tabular {
+    font-variant-numeric: tabular-nums;
 }

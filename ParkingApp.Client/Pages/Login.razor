@@ -6,37 +6,45 @@
 @inject NavigationManager Navigation
 @inject AuthenticationStateProvider AuthStateProvider
 
-<div class="login-wrapper">
-    <div class="login-card">
+<PageTitle>Σύνδεση · ParkingApp</PageTitle>
+
+<div class="login-page">
+    <div class="login-panel">
         <div class="login-header">
-            <h1>ParkingApp</h1>
-            <p>Sign in to your account</p>
+            <span class="login-mark" aria-hidden="true">P</span>
+            <MudText Typo="Typo.h4" HtmlTag="h1">Σύνδεση στο ParkingApp</MudText>
         </div>
 
-        <EditForm Model="@_model" OnValidSubmit="HandleLogin" class="login-form">
-            <DataAnnotationsValidator />
+        <MudPaper Outlined="true" Class="login-card">
+            <EditForm Model="@_model" OnValidSubmit="HandleLogin">
+                <MudStack Spacing="4">
+                    <MudTextField @bind-Value="_model.UserName"
+                                  Label="Όνομα χρήστη"
+                                  Variant="Variant.Outlined"
+                                  HelperText="Υπάλληλοι: κωδικός εταιρίας και όνομα, π.χ. athens.nikos"
+                                  AutoFocus="true" />
 
-            <div class="form-group">
-                <label for="username">Username</label>
-                <InputText id="username" class="form-input" @bind-Value="_model.UserName"
-                           placeholder="you@example.com" />
-            </div>
+                    <MudTextField @bind-Value="_model.Password"
+                                  Label="Κωδικός"
+                                  Variant="Variant.Outlined"
+                                  InputType="InputType.Password" />
 
-            <div class="form-group">
-                <label for="password">Password</label>
-                <InputText id="password" type="password" class="form-input"
-                           @bind-Value="_model.Password" placeholder="••••••••" />
-            </div>
+                    @if (!string.IsNullOrEmpty(_error))
+                    {
+                        <MudAlert Severity="Severity.Error" Variant="Variant.Text">@_error</MudAlert>
+                    }
 
-            @if (!string.IsNullOrEmpty(_error))
-            {
-                <div class="login-error" role="alert">@_error</div>
-            }
-
-            <button type="submit" class="login-button" disabled="@_isSubmitting">
-                @(_isSubmitting ? "Signing in..." : "Sign in")
-            </button>
-        </EditForm>
+                    <MudButton ButtonType="ButtonType.Submit"
+                               Variant="Variant.Filled"
+                               Color="Color.Primary"
+                               Size="Size.Large"
+                               FullWidth="true"
+                               Disabled="@_isSubmitting">
+                        @(_isSubmitting ? "Σύνδεση..." : "Σύνδεση")
+                    </MudButton>
+                </MudStack>
+            </EditForm>
+        </MudPaper>
     </div>
 </div>
 
@@ -61,12 +69,12 @@
 
         try
         {
-            var (success, error) = await AuthService.LoginAsync(_model);
+            var (success, _) = await AuthService.LoginAsync(_model);
 
             if (!success)
             {
-                // Show the server's message (e.g. wrong credentials) — the user can simply try again
-                _error = error;
+                // Wrong credentials: show the message in the UI language; the user can simply try again
+                _error = "Λάθος όνομα χρήστη ή κωδικός. Ελέγξτε τα στοιχεία και δοκιμάστε ξανά.";
                 return;
             }
 
@@ -85,7 +93,7 @@
         catch
         {
             // The API could not be reached (not running, network down): no envelope came back
-            _error = "Could not reach the server.";
+            _error = "Δεν υπάρχει σύνδεση με τον server. Δοκιμάστε ξανά σε λίγο.";
         }
         finally
         {

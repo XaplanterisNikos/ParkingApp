@@ -2,6 +2,7 @@ using Blazored.LocalStorage;
 using Microsoft.AspNetCore.Components.Authorization;
 using Microsoft.AspNetCore.Components.Web;
 using Microsoft.AspNetCore.Components.WebAssembly.Hosting;
+using MudBlazor.Services;
 using ParkingApp.Client;
 using ParkingApp.Client.Consumers.Auth;
 using ParkingApp.Client.Consumers.Branches;
@@ -17,6 +18,9 @@ using ParkingApp.Client.Services.Session;
 var builder = WebAssemblyHostBuilder.CreateDefault(args);
 builder.RootComponents.Add<App>("#app");
 builder.RootComponents.Add<HeadOutlet>("head::after");
+
+// MudBlazor component services (dialogs, snackbars, popovers, viewport).
+builder.Services.AddMudServices();
 
 // Register the handler itself.
 builder.Services.AddScoped<AuthTokenHandler>();
