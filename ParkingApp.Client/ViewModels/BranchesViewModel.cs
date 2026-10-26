@@ -60,12 +60,12 @@ public class BranchesViewModel
 			}
 			else
 			{
-				LoadError = result?.Message ?? "Could not load branches.";
+				LoadError = result?.Message ?? "Δεν ήταν δυνατή η φόρτωση των υποκαταστημάτων.";
 			}
 		}
 		catch
 		{
-			LoadError = "Could not reach the server.";
+			LoadError = "Δεν υπάρχει σύνδεση με τον server. Δοκιμάστε ξανά σε λίγο.";
 		}
 		finally
 		{
@@ -82,7 +82,7 @@ public class BranchesViewModel
 		// Guard: don't submit an empty name.
 		if (string.IsNullOrWhiteSpace(NewBranchName))
 		{
-			CreateError = "Please enter a branch name.";
+			CreateError = "Γράψτε το όνομα του υποκαταστήματος.";
 			return;
 		}
 
@@ -101,12 +101,12 @@ public class BranchesViewModel
 			}
 			else
 			{
-				CreateError = result?.Message ?? "Could not create the branch.";
+				CreateError = result?.Message ?? "Δεν ήταν δυνατή η δημιουργία του υποκαταστήματος.";
 			}
 		}
 		catch
 		{
-			CreateError = "Could not reach the server.";
+			CreateError = "Δεν υπάρχει σύνδεση με τον server. Δοκιμάστε ξανά σε λίγο.";
 		}
 		finally
 		{

@@ -103,7 +103,7 @@ public class BranchManageViewModel
 
 			if (branchResult is not { Success: true, Value: not null })
 			{
-				LoadError = branchResult?.Message ?? "Branch not found.";
+				LoadError = branchResult?.Message ?? "Το υποκατάστημα δεν βρέθηκε.";
 				return;
 			}
 
@@ -112,7 +112,7 @@ public class BranchManageViewModel
 		}
 		catch
 		{
-			LoadError = "Could not reach the server.";
+			LoadError = "Δεν υπάρχει σύνδεση με τον server. Δοκιμάστε ξανά σε λίγο.";
 		}
 		finally
 		{
@@ -120,12 +120,12 @@ public class BranchManageViewModel
 		}
 	}
 
-	/// <summary>Creates a floor from <see cref="NewFloorName"/> and reloads the list.</summary>
+	/// <summary>Creates a floor from <see cref="SelectedFloorType"/> and reloads the list.</summary>
 	public async Task CreateFloorAsync()
 	{
 		if (SelectedFloorType is null)
 		{
-			CreateFloorError = "Please select a floor.";
+			CreateFloorError = "Διαλέξτε όροφο.";
 			return;
 		}
 
@@ -144,12 +144,12 @@ public class BranchManageViewModel
 			}
 			else
 			{
-				CreateFloorError = result?.Message ?? "Could not create the floor.";
+				CreateFloorError = result?.Message ?? "Δεν ήταν δυνατή η δημιουργία του ορόφου.";
 			}
 		}
 		catch
 		{
-			CreateFloorError = "Could not reach the server.";
+			CreateFloorError = "Δεν υπάρχει σύνδεση με τον server. Δοκιμάστε ξανά σε λίγο.";
 		}
 		finally
 		{
@@ -171,14 +171,14 @@ public class BranchManageViewModel
 			: new List<SpotDto>();
 	}
 
-	/// <summary>Generates a batch of spots on the active floor, then closes the form.</summary>
+	/// <summary>Generates a batch of spots on the active floor, then shows the floor with its new spots.</summary>
 	public async Task GenerateSpotsAsync()
 	{
 		if (ActiveFloorId is null) return;
 
 		if (SpotCount < 1)
 		{
-			SpotError = "Enter a count of at least 1.";
+			SpotError = "Το πλήθος πρέπει να είναι τουλάχιστον 1.";
 			return;
 		}
 
@@ -192,16 +192,17 @@ public class BranchManageViewModel
 
 			if (result is { Success: true })
 			{
-				CloseSpotForm();   // generate → form closes
+				// Keep the floor open and reload it, so the new spots appear at once
+				await OpenFloorAsync(ActiveFloorId.Value);
 			}
 			else
 			{
-				SpotError = result?.Message ?? "Could not generate spots.";
+				SpotError = result?.Message ?? "Δεν ήταν δυνατή η δημιουργία των θέσεων.";
 			}
 		}
 		catch
 		{
-			SpotError = "Could not reach the server.";
+			SpotError = "Δεν υπάρχει σύνδεση με τον server. Δοκιμάστε ξανά σε λίγο.";
 		}
 		finally
 		{
@@ -227,7 +228,7 @@ public class BranchManageViewModel
 		}
 		else
 		{
-			LoadError = result?.Message ?? "Could not load floors.";
+			LoadError = result?.Message ?? "Δεν ήταν δυνατή η φόρτωση των ορόφων.";
 		}
 	}
 

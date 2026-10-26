@@ -11,139 +11,155 @@
 @inject IFloorsConsumer FloorsConsumer
 @inject ISpotsConsumer SpotsConsumer
 
+<PageTitle>Υποκατάστημα · ParkingApp</PageTitle>
+
 @if (_viewModel is null || _viewModel.IsLoading)
 {
-    <p class="muted">Loading...</p>
+    <MudProgressLinear Indeterminate="true" Color="Color.Primary" />
 }
 else if (!string.IsNullOrEmpty(_viewModel.LoadError))
 {
-    <p class="error" role="alert">@_viewModel.LoadError</p>
+    <MudAlert Severity="Severity.Error">@_viewModel.LoadError</MudAlert>
 }
 else
 {
-    <div class="manage-page">
-        <a href="branches" class="back-link">← Back to branches</a>
+    <div class="page-header">
+        <span class="page-back"><a href="branches">Υποκαταστήματα</a> / @_viewModel.Branch!.Name</span>
+        <MudText Typo="Typo.h4" HtmlTag="h1">@_viewModel.Branch!.Name</MudText>
+    </div>
 
-        <h1>@_viewModel.Branch!.Name</h1>
-
-        <section class="section">
-            <h2>Floors</h2>
-
-            <div class="create-row">
-                <select class="text-input" @bind="_viewModel.SelectedFloorType"
-                        disabled="@_viewModel.IsCreatingFloor">
-                    <option value="">-- Select floor --</option>
-                    @foreach (var type in _viewModel.AvailableFloorTypes)
-                    {
-                        <option value="@type">@FloorTypeInfo.NameOf(type)</option>
-                    }
-                </select>
-                <button class="btn" @onclick="_viewModel.CreateFloorAsync"
-                        disabled="@_viewModel.IsCreatingFloor">
-                    @(_viewModel.IsCreatingFloor ? "Adding..." : "Add floor")
-                </button>
-            </div>
-            @if (!string.IsNullOrEmpty(_viewModel.CreateFloorError))
-            {
-                <p class="error" role="alert">@_viewModel.CreateFloorError</p>
-            }
+    <div class="columns">
+        @* LEFT: floors in building order, and the form to add one *@
+        <MudPaper Outlined="true" Class="section-card column-narrow">
+            <MudText Typo="Typo.h6" HtmlTag="h2">Όροφοι</MudText>
 
             @if (_viewModel.Floors.Count == 0)
             {
-                <p class="muted">No floors yet. Add the first one above.</p>
+                <p class="muted">Δεν υπάρχουν όροφοι ακόμα. Προσθέστε τον πρώτο από κάτω.</p>
             }
             else
             {
-                <div class="floors-layout">
-                    <!-- LEFT: floor list (clickable) -->
-                    <ul class="floor-list">
-                        @foreach (var floor in _viewModel.Floors)
-                        {
-                            <li>
-                                <button class="floor-link @(_viewModel.ActiveFloorId == floor.Id ? "active" : "")"
-                                        @onclick="() => _viewModel.OpenFloorAsync(floor.Id)">
-                                    @FloorTypeInfo.NameOf(floor.Type)
-                                </button>
-                            </li>
-                        }
-                    </ul>
-
-                    <!-- RIGHT: spot form + spots of the active floor -->
-                    <div class="floor-detail">
-                        @if (_viewModel.ActiveFloorId is null)
-                        {
-                            <p class="muted">Select a floor to manage its spots.</p>
-                        }
-                        else
-                        {
-                            <h3>Spots</h3>
-
-                            <div class="spot-form">
-                                <select class="text-input" @bind="_viewModel.SelectedSize"
-                                        disabled="@_viewModel.IsSavingSpot">
-                                    <option value="@SpotSize.Motorcycle">@SpotSizeInfo.NameOf(SpotSize.Motorcycle)</option>
-                                    <option value="@SpotSize.Car">@SpotSizeInfo.NameOf(SpotSize.Car)</option>
-                                    <option value="@SpotSize.LargeCar">@SpotSizeInfo.NameOf(SpotSize.LargeCar)</option>
-                                </select>
-
-                                <input type="number" min="1" class="text-input" style="max-width:100px"
-                                       @bind="_viewModel.SpotCount" disabled="@_viewModel.IsSavingSpot" />
-
-                                <button class="btn" @onclick="_viewModel.GenerateSpotsAsync"
-                                        disabled="@_viewModel.IsSavingSpot">
-                                    @(_viewModel.IsSavingSpot ? "Generating..." : "Generate")
-                                </button>
-                                <button class="btn-secondary" @onclick="_viewModel.CancelSpotForm"
-                                        disabled="@_viewModel.IsSavingSpot">
-                                    Cancel
-                                </button>
-                            </div>
-
-                            @if (!string.IsNullOrEmpty(_viewModel.SpotError))
-                            {
-                                <p class="error" role="alert">@_viewModel.SpotError</p>
-                            }
-
-                            @if (_viewModel.ActiveFloorSpots.Count == 0)
-                            {
-                                <p class="muted">No spots on this floor yet.</p>
-                            }
-                            else
-                            {
-                                <table class="data-table">
-                                    <thead>
-                                        <tr><th>Number</th><th>Size</th></tr>
-                                    </thead>
-                                    <tbody>
-                                        @if (_viewModel.SpotSummary.Count == 0)
-                                        {
-                                            <p class="muted">No spots on this floor yet.</p>
-                                        }
-                                        else
-                                        {
-                                            <table class="data-table">
-                                                <thead>
-                                                    <tr><th>Κατηγορία</th><th>Θέσεις</th></tr>
-                                                </thead>
-                                                <tbody>
-                                                    @foreach (var row in _viewModel.SpotSummary)
-                                                    {
-                                                        <tr>
-                                                            <td>@SpotSizeInfo.NameOf(row.Size)</td>
-                                                            <td>@row.Count</td>
-                                                        </tr>
-                                                    }
-                                                </tbody>
-                                            </table>
-                                        }
-                                    </tbody>
-                                </table>
-                            }
-                        }
-                    </div>
+                <div class="floor-list">
+                    @foreach (var floor in FloorsTopDown)
+                    {
+                        <FloorButton Type="floor.Type"
+                                     Selected="_viewModel.ActiveFloorId == floor.Id"
+                                     OnClick="() => _viewModel.OpenFloorAsync(floor.Id)" />
+                    }
                 </div>
             }
-        </section>
+
+            @if (_viewModel.AvailableFloorTypes.Count > 0)
+            {
+                <div class="form-row add-floor">
+                    <MudSelect T="FloorType?"
+                               @bind-Value="_viewModel.SelectedFloorType"
+                               Label="Νέος όροφος"
+                               Variant="Variant.Outlined"
+                               Disabled="@_viewModel.IsCreatingFloor"
+                               Class="grow">
+                        @foreach (var type in _viewModel.AvailableFloorTypes)
+                        {
+                            <MudSelectItem T="FloorType?" Value="@type">@FloorTypeInfo.NameOf(type)</MudSelectItem>
+                        }
+                    </MudSelect>
+                    <MudButton Variant="Variant.Outlined"
+                               Color="Color.Primary"
+                               OnClick="_viewModel.CreateFloorAsync"
+                               Disabled="@_viewModel.IsCreatingFloor">
+                        Προσθήκη
+                    </MudButton>
+                </div>
+            }
+
+            @if (!string.IsNullOrEmpty(_viewModel.CreateFloorError))
+            {
+                <MudAlert Severity="Severity.Error" Dense="true">@_viewModel.CreateFloorError</MudAlert>
+            }
+        </MudPaper>
+
+        @* RIGHT: the selected floor's spots and the form to add more *@
+        <MudPaper Outlined="true" Class="section-card column-wide">
+            @if (ActiveFloor is null)
+            {
+                <p class="muted">Διαλέξτε όροφο για να δείτε και να προσθέσετε θέσεις.</p>
+            }
+            else
+            {
+                <MudText Typo="Typo.h5" HtmlTag="h2">@FloorTypeInfo.NameOf(ActiveFloor.Type)</MudText>
+
+                <div class="stat-grid">
+                    @foreach (var size in Enum.GetValues<SpotSize>())
+                    {
+                        <div class="stat-box">
+                            <span class="stat-label">@SpotSizeInfo.NameOf(size)</span>
+                            <span class="stat-value">@CountOf(size)</span>
+                        </div>
+                    }
+                </div>
+
+                <div class="inner-panel">
+                    <MudText Typo="Typo.subtitle1" HtmlTag="h3" Class="panel-title">Προσθήκη θέσεων</MudText>
+
+                    <div class="form-row">
+                        <MudToggleGroup T="SpotSize"
+                                        @bind-Value="_viewModel.SelectedSize"
+                                        Color="Color.Primary"
+                                        Disabled="@_viewModel.IsSavingSpot"
+                                        Class="size-toggle">
+                            @foreach (var size in Enum.GetValues<SpotSize>())
+                            {
+                                <MudToggleItem T="SpotSize" Value="@size" Text="@SpotSizeInfo.NameOf(size)" />
+                            }
+                        </MudToggleGroup>
+
+                        <MudNumericField T="int"
+                                         @bind-Value="_viewModel.SpotCount"
+                                         Label="Πλήθος"
+                                         Variant="Variant.Outlined"
+                                         Min="1"
+                                         Max="200"
+                                         Disabled="@_viewModel.IsSavingSpot"
+                                         Class="count-field" />
+
+                        <MudButton Variant="Variant.Filled"
+                                   Color="Color.Primary"
+                                   OnClick="_viewModel.GenerateSpotsAsync"
+                                   Disabled="@_viewModel.IsSavingSpot">
+                            @(_viewModel.IsSavingSpot ? "Προσθήκη..." : $"Προσθήκη {_viewModel.SpotCount} θέσεων")
+                        </MudButton>
+                    </div>
+
+                    <span class="muted">Θα ονομαστούν @NamePreview.</span>
+
+                    @if (!string.IsNullOrEmpty(_viewModel.SpotError))
+                    {
+                        <MudAlert Severity="Severity.Error" Dense="true">@_viewModel.SpotError</MudAlert>
+                    }
+                </div>
+
+                @if (_viewModel.ActiveFloorSpots.Count == 0)
+                {
+                    <p class="muted">Δεν υπάρχουν θέσεις σε αυτόν τον όροφο ακόμα.</p>
+                }
+                else
+                {
+                    @* One row of bays per size, in natural number order (2 before 10) *@
+                    @foreach (var group in SpotGroups)
+                    {
+                        <div class="bay-group">
+                            <span class="bay-group-title">@SpotSizeInfo.NameOf(group.Key)</span>
+                            <div class="bay-row">
+                                @foreach (var spot in group)
+                                {
+                                    <span class="bay bay-compact">@spot.Number</span>
+                                }
+                            </div>
+                        </div>
+                    }
+                }
+            }
+        </MudPaper>
     </div>
 }
 
@@ -154,7 +170,46 @@ else
 
     protected override async Task OnInitializedAsync()
     {
-        _viewModel = new BranchManageViewModel(BranchesConsumer, FloorsConsumer, SpotsConsumer,BranchId);
+        _viewModel = new BranchManageViewModel(BranchesConsumer, FloorsConsumer, SpotsConsumer, BranchId);
         await _viewModel.InitializeAsync();
+    }
+
+    /// <summary>Floors in building order: the highest at the top, basements at the bottom.</summary>
+    private IEnumerable<FloorDto> FloorsTopDown =>
+        _viewModel!.Floors.OrderByDescending(floor => (int)floor.Type);
+
+    /// <summary>The floor whose spots are shown, or null when none is selected.</summary>
+    private FloorDto? ActiveFloor =>
+        _viewModel!.Floors.FirstOrDefault(floor => floor.Id == _viewModel.ActiveFloorId);
+
+    /// <summary>
+    /// Spots grouped by size, each group in natural order. The server sorts numbers as text
+    /// (LC10 before LC2), so a shorter number comes first here.
+    /// </summary>
+    private IEnumerable<IGrouping<SpotSize, SpotDto>> SpotGroups =>
+        _viewModel!.ActiveFloorSpots
+            .OrderBy(spot => spot.Size)
+            .ThenBy(spot => spot.Number.Length)
+            .ThenBy(spot => spot.Number, StringComparer.Ordinal)
+            .GroupBy(spot => spot.Size);
+
+    /// <summary>How many spots of a size the active floor has.</summary>
+    private int CountOf(SpotSize size) =>
+        _viewModel!.ActiveFloorSpots.Count(spot => spot.Size == size);
+
+    /// <summary>
+    /// The names the new spots will get. Same rule as the server: {floor code}{size code}{n},
+    /// numbering continues after the spots of that size that already exist.
+    /// </summary>
+    private string NamePreview
+    {
+        get
+        {
+            var prefix = FloorTypeInfo.CodeOf(ActiveFloor!.Type) + SpotSizeInfo.CodeOf(_viewModel!.SelectedSize);
+            var first = CountOf(_viewModel.SelectedSize) + 1;
+            var last = first + Math.Max(_viewModel.SpotCount, 1) - 1;
+
+            return first == last ? $"{prefix}{first}" : $"{prefix}{first} έως {prefix}{last}";
+        }
     }
 }

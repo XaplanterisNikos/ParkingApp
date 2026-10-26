@@ -1,28 +1,46 @@
-﻿.form-row {
+﻿/* One column: the form on top, the table under it */
+.employees-layout {
 	display: flex;
-	gap: 0.75rem;
-	margin-bottom: 1rem;
-	flex-wrap: wrap;
+	flex-direction: column;
+	gap: 20px;
+	max-width: 1040px;
 }
 
-.branch-picker {
-	display: flex;
-	align-items: center;
-	gap: 1rem;
-	flex-wrap: wrap;
-	margin-bottom: 1rem;
+/* Three fields side by side; they wrap on small screens */
+.employee-fields {
+	display: grid;
+	grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+	gap: 12px;
+	align-items: start;
 }
 
-.picker-label {
-	font-size: 0.85rem;
+.branch-choice {
+	display: flex;
+	flex-direction: column;
+	gap: 4px;
+}
+
+.branch-choice-title {
+	font-weight: 500;
+}
+
+.branch-choice-list {
+	display: flex;
+	flex-wrap: wrap;
+	gap: 0 16px;
+}
+
+/* MudPaper and the table cells are child components, so they need ::deep */
+.employees-layout ::deep .table-card {
+	overflow: hidden;
+	border-radius: 12px;
+}
+
+.employees-layout ::deep th {
+	color: var(--mud-palette-text-secondary);
+	font-weight: 500;
+}
+
+.employees-layout ::deep .username {
 	font-weight: 600;
-	color: #374151;
-}
-
-.branch-check {
-	display: flex;
-	align-items: center;
-	gap: 0.35rem;
-	font-size: 0.9rem;
-	cursor: pointer;
 }

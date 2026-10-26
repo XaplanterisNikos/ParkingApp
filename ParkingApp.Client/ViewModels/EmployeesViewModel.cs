@@ -86,7 +86,7 @@ public class EmployeesViewModel
 		}
 		catch
 		{
-			LoadError = "Could not reach the server.";
+			LoadError = "Δεν υπάρχει σύνδεση με τον server. Δοκιμάστε ξανά σε λίγο.";
 		}
 		finally
 		{
@@ -110,13 +110,13 @@ public class EmployeesViewModel
 			string.IsNullOrWhiteSpace(NewFullName) ||
 			string.IsNullOrWhiteSpace(NewPassword))
 		{
-			CreateError = "Please fill in username, full name and password.";
+			CreateError = "Συμπληρώστε όνομα χρήστη, ονοματεπώνυμο και κωδικό.";
 			return;
 		}
 
 		if (SelectedBranchIds.Count == 0)
 		{
-			CreateError = "Select at least one branch.";
+			CreateError = "Διαλέξτε τουλάχιστον ένα υποκατάστημα.";
 			return;
 		}
 
@@ -142,12 +142,12 @@ public class EmployeesViewModel
 			}
 			else
 			{
-				CreateError = result?.Message ?? "Could not create the employee.";
+				CreateError = result?.Message ?? "Δεν ήταν δυνατή η δημιουργία του υπαλλήλου.";
 			}
 		}
 		catch
 		{
-			CreateError = "Could not reach the server.";
+			CreateError = "Δεν υπάρχει σύνδεση με τον server. Δοκιμάστε ξανά σε λίγο.";
 		}
 		finally
 		{
@@ -170,7 +170,7 @@ public class EmployeesViewModel
 		}
 		else
 		{
-			LoadError = result?.Message ?? "Could not load employees.";
+			LoadError = result?.Message ?? "Δεν ήταν δυνατή η φόρτωση των υπαλλήλων.";
 		}
 	}
 

@@ -7,90 +7,127 @@
 @inject IEmployeesConsumer EmployeesConsumer
 @inject IBranchesConsumer BranchesConsumer
 
-<h1>Employees</h1>
+<PageTitle>Υπάλληλοι · ParkingApp</PageTitle>
+
+<div class="page-header">
+    <MudText Typo="Typo.h4" HtmlTag="h1">Υπάλληλοι</MudText>
+    <span class="page-subtitle">Λογαριασμοί για όσους δουλεύουν στα ταμεία των υποκαταστημάτων σας.</span>
+</div>
 
 @if (_viewModel is null || _viewModel.IsLoading)
 {
-    <p class="muted">Loading...</p>
+    <MudProgressLinear Indeterminate="true" Color="Color.Primary" />
+}
+else if (_viewModel.Branches.Count == 0)
+{
+    <MudPaper Outlined="true" Class="section-card" Style="max-width: 640px">
+        <span>Χρειάζεστε τουλάχιστον ένα υποκατάστημα πριν προσθέσετε υπαλλήλους.</span>
+        <div>
+            <MudButton Href="branches" Variant="Variant.Filled" Color="Color.Primary">Δημιουργία υποκαταστήματος</MudButton>
+        </div>
+    </MudPaper>
 }
 else
 {
-    @if (_viewModel.Branches.Count == 0)
-    {
-        <p class="muted">
-            You need at least one branch before adding employees.
-            <a href="branches">Create a branch first</a>.
-        </p>
-    }
-    else
-    {
-        <!-- Create form -->
-        <div class="create-card">
-            <div class="form-row">
-                <input class="text-input" placeholder="Username (e.g. giannis)"
-                       @bind="_viewModel.NewUsername" @bind:event="oninput"
-                       disabled="@_viewModel.IsCreating" />
-                <input class="text-input" placeholder="Full name"
-                       @bind="_viewModel.NewFullName" @bind:event="oninput"
-                       disabled="@_viewModel.IsCreating" />
-                <input type="password" class="text-input" placeholder="Password"
-                       @bind="_viewModel.NewPassword" @bind:event="oninput"
-                       disabled="@_viewModel.IsCreating" />
+    <div class="employees-layout">
+        @* Create form *@
+        <MudPaper Outlined="true" Class="section-card">
+            <MudText Typo="Typo.h6" HtmlTag="h2">Νέος υπάλληλος</MudText>
+
+            @* autocomplete="new-password" keeps the browser from filling in the owner's own login *@
+            <div class="employee-fields">
+                <MudTextField @bind-Value="_viewModel.NewUsername"
+                              Label="Όνομα χρήστη"
+                              HelperText="Ο κωδικός της εταιρίας μπαίνει μπροστά, π.χ. athens.giannis"
+                              Variant="Variant.Outlined"
+                              Immediate="true"
+                              Disabled="@_viewModel.IsCreating"
+                              autocomplete="off" />
+                <MudTextField @bind-Value="_viewModel.NewFullName"
+                              Label="Ονοματεπώνυμο"
+                              Variant="Variant.Outlined"
+                              Immediate="true"
+                              Disabled="@_viewModel.IsCreating"
+                              autocomplete="off" />
+                <MudTextField @bind-Value="_viewModel.NewPassword"
+                              Label="Κωδικός"
+                              HelperText="Τουλάχιστον 6 χαρακτήρες, με κεφαλαίο, πεζό, αριθμό και σύμβολο"
+                              Variant="Variant.Outlined"
+                              InputType="InputType.Password"
+                              Immediate="true"
+                              Disabled="@_viewModel.IsCreating"
+                              autocomplete="new-password" />
             </div>
 
-            <div class="branch-picker">
-                <span class="picker-label">Branches:</span>
-                @foreach (var branch in _viewModel.Branches)
-                {
-                    <label class="branch-check">
-                        <input type="checkbox"
-                               checked="@_viewModel.SelectedBranchIds.Contains(branch.Id)"
-                               @onchange="() => _viewModel.ToggleBranch(branch.Id)"
-                               disabled="@_viewModel.IsCreating" />
-                        @branch.Name
-                    </label>
-                }
+            <div class="branch-choice">
+                <span class="branch-choice-title">Υποκαταστήματα</span>
+                <div class="branch-choice-list">
+                    @foreach (var branch in _viewModel.Branches)
+                    {
+                        <MudCheckBox T="bool"
+                                     Value="@_viewModel.SelectedBranchIds.Contains(branch.Id)"
+                                     ValueChanged="_ => _viewModel.ToggleBranch(branch.Id)"
+                                     Label="@branch.Name"
+                                     Color="Color.Primary"
+                                     Disabled="@_viewModel.IsCreating" />
+                    }
+                </div>
             </div>
-
-            <button class="btn" @onclick="_viewModel.CreateAsync" disabled="@_viewModel.IsCreating">
-                @(_viewModel.IsCreating ? "Adding..." : "Add employee")
-            </button>
 
             @if (!string.IsNullOrEmpty(_viewModel.CreateError))
             {
-                <p class="error" role="alert">@_viewModel.CreateError</p>
+                <MudAlert Severity="Severity.Error" Dense="true">@_viewModel.CreateError</MudAlert>
             }
-        </div>
 
-        <!-- List -->
+            <div>
+                <MudButton Variant="Variant.Filled"
+                           Color="Color.Primary"
+                           OnClick="_viewModel.CreateAsync"
+                           Disabled="@_viewModel.IsCreating">
+                    @(_viewModel.IsCreating ? "Προσθήκη..." : "Προσθήκη υπαλλήλου")
+                </MudButton>
+            </div>
+        </MudPaper>
+
+        @* List *@
         @if (!string.IsNullOrEmpty(_viewModel.LoadError))
         {
-            <p class="error" role="alert">@_viewModel.LoadError</p>
+            <MudAlert Severity="Severity.Error">@_viewModel.LoadError</MudAlert>
         }
         else if (_viewModel.Employees.Count == 0)
         {
-            <p class="muted">No employees yet. Add the first one above.</p>
+            <p class="muted">Δεν υπάρχουν υπάλληλοι ακόμα. Προσθέστε τον πρώτο από πάνω.</p>
         }
         else
         {
-            <table class="data-table">
-                <thead>
-                    <tr><th>Username</th><th>Full name</th><th>Branches</th></tr>
-                </thead>
-                <tbody>
-                    @foreach (var employee in _viewModel.Employees)
-                    {
+            <MudPaper Outlined="true" Class="table-card">
+                <MudSimpleTable Hover="true" Elevation="0">
+                    <thead>
                         <tr>
-                            <td>@employee.LoginUsername</td>
-                            <td>@employee.FullName</td>
-                            <td>@string.Join(", ", employee.Branches.Select(b => b.Name))</td>
+                            <th>Όνομα χρήστη</th>
+                            <th>Ονοματεπώνυμο</th>
+                            <th>Υποκαταστήματα</th>
                         </tr>
-                    }
-                </tbody>
-            </table>
+                    </thead>
+                    <tbody>
+                        @foreach (var employee in _viewModel.Employees)
+                        {
+                            <tr>
+                                <td class="username">@employee.LoginUsername</td>
+                                <td>@employee.FullName</td>
+                                <td>
+                                    @foreach (var branch in employee.Branches)
+                                    {
+                                        <MudChip T="string" Size="Size.Small" Variant="Variant.Outlined">@branch.Name</MudChip>
+                                    }
+                                </td>
+                            </tr>
+                        }
+                    </tbody>
+                </MudSimpleTable>
+            </MudPaper>
         }
-    }
-   
+    </div>
 }
 
 @code {

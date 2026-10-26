@@ -93,12 +93,12 @@ public class HomeViewModel
 			}
 			else
 			{
-				Error = result?.Message ?? "Could not load your company.";
+				Error = result?.Message ?? "Δεν ήταν δυνατή η φόρτωση της εταιρίας σας.";
 			}
 		}
 		catch
 		{
-			Error = "Could not reach the server.";
+			Error = "Δεν υπάρχει σύνδεση με τον server. Δοκιμάστε ξανά σε λίγο.";
 		}
 		finally
 		{

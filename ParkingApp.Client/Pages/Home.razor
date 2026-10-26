@@ -9,21 +9,45 @@
 @inject NavigationManager Navigation
 @inject AuthenticationStateProvider AuthStateProvider
 
-
-<h1>Welcome</h1>
+<PageTitle>Επισκόπηση · ParkingApp</PageTitle>
 
 @if (_viewModel is null || _viewModel.IsLoading)
 {
-    <p>Loading...</p>
+    <MudProgressLinear Indeterminate="true" Color="Color.Primary" />
 }
-else if (_viewModel.Company is not null)
+else if (_viewModel.Company is null)
 {
-    <p>Signed in to <strong>@_viewModel.Company.Name</strong>.</p>
+    <MudAlert Severity="Severity.Error">@(_viewModel.Error ?? "Δεν ήταν δυνατή η φόρτωση της εταιρίας σας.")</MudAlert>
 }
 else
 {
-    <p role="alert">@(_viewModel.Error ?? "Could not load your company.")</p>
+    <div class="page-header">
+        <MudText Typo="Typo.h4" HtmlTag="h1">@_viewModel.Company.Name</MudText>
+        <span class="page-subtitle">Από εδώ στήνετε τα υποκαταστήματα και τους υπαλλήλους σας.</span>
+    </div>
+
+    @* Two starting points; statistics will join them in a later slice *@
+    <div class="home-links">
+        <MudPaper Outlined="true" Class="section-card">
+            <MudIcon Icon="@Icons.Material.Outlined.Apartment" Color="Color.Primary" />
+            <MudText Typo="Typo.h6" HtmlTag="h2">Υποκαταστήματα</MudText>
+            <span class="muted">Ορόφους και θέσεις για κάθε parking σας.</span>
+            <div>
+                <MudButton Href="branches" Variant="Variant.Outlined" Color="Color.Primary">Άνοιγμα</MudButton>
+            </div>
+        </MudPaper>
+
+        <MudPaper Outlined="true" Class="section-card">
+            <MudIcon Icon="@Icons.Material.Outlined.Group" Color="Color.Primary" />
+            <MudText Typo="Typo.h6" HtmlTag="h2">Υπάλληλοι</MudText>
+            <span class="muted">Λογαριασμοί για όσους δουλεύουν στα ταμεία.</span>
+            <div>
+                <MudButton Href="employees" Variant="Variant.Outlined" Color="Color.Primary">Άνοιγμα</MudButton>
+            </div>
+        </MudPaper>
+    </div>
 }
+
 @code {
     private HomeViewModel? _viewModel;
 

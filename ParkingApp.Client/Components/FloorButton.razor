@@ -1,0 +1,57 @@
+@namespace ParkingApp.Client.Components
+@using ParkingApp.Shared.Floors
+
+@* One floor, drawn like an elevator button: the level number in a circle, then the name *@
+<button type="button"
+        class="floor-button @(Selected ? "selected" : null)"
+        aria-pressed="@(Selected ? "true" : "false")"
+        @onclick="OnClick">
+    <span class="floor-badge" aria-hidden="true">@LevelLabel</span>
+    <span class="floor-text">
+        <span class="floor-name">
+            @FloorTypeInfo.NameOf(Type)
+            @if (Highlight)
+            {
+                <MudIcon Icon="@Icons.Material.Filled.Star" Color="Color.Primary" Size="Size.Small" Title="@HighlightTitle" />
+            }
+        </span>
+        @if (!string.IsNullOrEmpty(Detail))
+        {
+            <span class="floor-detail">@Detail</span>
+        }
+        @ChildContent
+    </span>
+</button>
+
+@code {
+    /// <summary>The floor shown on the button.</summary>
+    [Parameter] public FloorType Type { get; set; }
+
+    /// <summary>True for the floor currently shown.</summary>
+    [Parameter] public bool Selected { get; set; }
+
+    /// <summary>Optional second line (e.g. a count).</summary>
+    [Parameter] public string? Detail { get; set; }
+
+    /// <summary>Shows a star next to the name (e.g. the suggested spot is on this floor).</summary>
+    [Parameter] public bool Highlight { get; set; }
+
+    /// <summary>Tooltip of the star.</summary>
+    [Parameter] public string? HighlightTitle { get; set; }
+
+    /// <summary>Raised when the button is pressed.</summary>
+    [Parameter] public EventCallback OnClick { get; set; }
+
+    /// <summary>Optional extra content under the name (e.g. an occupancy bar).</summary>
+    [Parameter] public RenderFragment? ChildContent { get; set; }
+
+    /// <summary>The level as on an elevator panel: 1, 0, −1 (a real minus sign).</summary>
+    private string LevelLabel
+    {
+        get
+        {
+            var level = (int)Type;
+            return level < 0 ? $"−{-level}" : level.ToString();
+        }
+    }
+}
