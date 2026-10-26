@@ -1,0 +1,92 @@
+﻿@page "/holidays"
+@attribute [Authorize(Roles = "Owner")]
+@using Microsoft.AspNetCore.Authorization
+@using ParkingApp.Client.Consumers.Pricing
+@using ParkingApp.Client.ViewModels
+@inject IHolidaysConsumer HolidaysConsumer
+
+<PageTitle>Αργίες · ParkingApp</PageTitle>
+
+<div class="page-header">
+    <MudText Typo="Typo.h4" HtmlTag="h1">Αργίες</MudText>
+    <span class="page-subtitle">
+        Ισχύουν για όλα τα υποκαταστήματα. Τις μέρες αυτές η χρέωση γίνεται με τις τιμές αργίας του κάθε υποκαταστήματος.
+    </span>
+</div>
+
+@if (_viewModel is null || _viewModel.IsLoading)
+{
+    <MudProgressLinear Indeterminate="true" Color="Color.Primary" />
+}
+else if (!string.IsNullOrEmpty(_viewModel.LoadError))
+{
+    <MudAlert Severity="Severity.Error">@_viewModel.LoadError</MudAlert>
+}
+else
+{
+    <div class="pricing-page">
+        <MudPaper Outlined="true" Class="section-card">
+            @* Saved at once: a switch has no separate save button *@
+            <MudSwitch T="bool" Value="_viewModel.SundaysAreHolidays"
+                       ValueChanged="_viewModel.SetSundaysAreHolidaysAsync"
+                       Color="Color.Primary" Disabled="@_viewModel.IsSaving"
+                       Label="Οι Κυριακές χρεώνονται ως αργίες" />
+        </MudPaper>
+
+        <MudPaper Outlined="true" Class="section-card">
+            <MudText Typo="Typo.h6" HtmlTag="h2">Ημερομηνίες</MudText>
+
+            <div class="form-row">
+                <MudTextField T="string" @bind-Value="_viewModel.NewDateText" InputType="InputType.Date"
+                              Label="Ημερομηνία" Variant="Variant.Outlined" Disabled="@_viewModel.IsSaving" />
+                <MudTextField T="string" @bind-Value="_viewModel.NewName" Label="Όνομα"
+                              Placeholder="π.χ. 28η Οκτωβρίου" Variant="Variant.Outlined" Immediate="true"
+                              Disabled="@_viewModel.IsSaving" Class="grow" />
+                <MudButton Variant="Variant.Filled" Color="Color.Primary"
+                           Disabled="@_viewModel.IsSaving" OnClick="_viewModel.AddAsync">
+                    Προσθήκη
+                </MudButton>
+            </div>
+
+            @if (!string.IsNullOrEmpty(_viewModel.Error))
+            {
+                <MudAlert Severity="Severity.Error" Dense="true">@_viewModel.Error</MudAlert>
+            }
+
+            @if (_viewModel.Holidays.Count == 0)
+            {
+                <p class="muted">Δεν υπάρχουν αργίες ακόμα.</p>
+            }
+            else
+            {
+                <div class="holiday-list">
+                    @foreach (var holiday in _viewModel.Holidays)
+                    {
+                        <div class="list-row">
+                            <span class="holiday-date tabular">@DayName(holiday.Date) @holiday.Date.ToString("dd/MM/yyyy")</span>
+                            <span class="list-row-title">@holiday.Name</span>
+                            <MudIconButton Icon="@Icons.Material.Outlined.Delete" aria-label="@($"Διαγραφή: {holiday.Name}")"
+                                           Disabled="@_viewModel.IsSaving" OnClick="() => _viewModel.DeleteAsync(holiday)" />
+                        </div>
+                    }
+                </div>
+            }
+        </MudPaper>
+    </div>
+}
+
+@code {
+    // Greek day names, so the page does not depend on the browser's culture data
+    private static readonly string[] GreekDays = { "Κυρ", "Δευ", "Τρί", "Τετ", "Πέμ", "Παρ", "Σάβ" };
+
+    private HolidaysViewModel? _viewModel;
+
+    protected override async Task OnInitializedAsync()
+    {
+        _viewModel = new HolidaysViewModel(HolidaysConsumer);
+        await _viewModel.InitializeAsync();
+    }
+
+    /// <summary>The short Greek name of the date's weekday.</summary>
+    private static string DayName(DateOnly date) => GreekDays[(int)date.DayOfWeek];
+}

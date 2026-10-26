@@ -25,7 +25,16 @@ else
 {
     <div class="page-header">
         <span class="page-back"><a href="branches">Υποκαταστήματα</a> / @_viewModel.Branch!.Name</span>
-        <MudText Typo="Typo.h4" HtmlTag="h1">@_viewModel.Branch!.Name</MudText>
+        @* Title with the branch's other settings on the right *@
+        <div class="page-header-row">
+            <MudText Typo="Typo.h4" HtmlTag="h1">@_viewModel.Branch!.Name</MudText>
+            <MudButton Href="@($"branches/{BranchId}/pricing")"
+                       Variant="Variant.Outlined"
+                       Color="Color.Primary"
+                       StartIcon="@Icons.Material.Outlined.Euro">
+                Τιμοκατάλογος
+            </MudButton>
+        </div>
     </div>
 
     <div class="columns">

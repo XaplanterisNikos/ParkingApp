@@ -10,6 +10,7 @@ using ParkingApp.Client.Consumers.Companies;
 using ParkingApp.Client.Consumers.Console;
 using ParkingApp.Client.Consumers.Employees;
 using ParkingApp.Client.Consumers.Floors;
+using ParkingApp.Client.Consumers.Pricing;
 using ParkingApp.Client.Consumers.Session;
 using ParkingApp.Client.Consumers.Spots;
 using ParkingApp.Client.Consumers.Tickets;
@@ -62,6 +63,10 @@ builder.Services.AddScoped<IConsoleConsumer, ConsoleConsumer>();
 
 // Ticket API client (vehicle entry; branch comes from the token).
 builder.Services.AddScoped<ITicketsConsumer, TicketsConsumer>();
+
+// Owner pricing API clients (price lists per branch, company holiday calendar).
+builder.Services.AddScoped<ITariffsConsumer, TariffsConsumer>();
+builder.Services.AddScoped<IHolidaysConsumer, HolidaysConsumer>();
 
 
 // --- Authentication / authorization (client-side) ---

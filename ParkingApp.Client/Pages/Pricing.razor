@@ -1,0 +1,228 @@
+﻿@page "/branches/{BranchId:guid}/pricing"
+@attribute [Authorize(Roles = "Owner")]
+@using Microsoft.AspNetCore.Authorization
+@using ParkingApp.Client.Consumers.Branches
+@using ParkingApp.Client.Consumers.Pricing
+@using ParkingApp.Client.ViewModels
+@using ParkingApp.Shared.Pricing
+@using ParkingApp.Shared.Spots
+@inject IBranchesConsumer BranchesConsumer
+@inject ITariffsConsumer TariffsConsumer
+
+<PageTitle>Τιμοκατάλογος · ParkingApp</PageTitle>
+
+@if (_viewModel is null || _viewModel.IsLoading)
+{
+    <MudProgressLinear Indeterminate="true" Color="Color.Primary" />
+}
+else if (!string.IsNullOrEmpty(_viewModel.LoadError))
+{
+    <MudAlert Severity="Severity.Error">@_viewModel.LoadError</MudAlert>
+}
+else
+{
+    var form = _viewModel.Form;
+
+    <div class="page-header">
+        <span class="page-back">
+            <a href="branches">Υποκαταστήματα</a> /
+            <a href="@($"branches/{BranchId}")">@_viewModel.Branch!.Name</a> / Τιμοκατάλογος
+        </span>
+        <MudText Typo="Typo.h4" HtmlTag="h1">Τιμοκατάλογος</MudText>
+        <span class="page-subtitle">
+            @if (form.CreatedAt is { } savedAt)
+            {
+                <text>Τελευταία αλλαγή: @savedAt.ToLocalTime().ToString("dd/MM/yyyy HH:mm"). </text>
+            }
+            else
+            {
+                <text>Δεν έχει αποθηκευτεί τιμοκατάλογος ακόμα· οι τιμές είναι προτάσεις. </text>
+            }
+            Όλες οι τιμές περιλαμβάνουν ΦΠΑ.
+        </span>
+    </div>
+
+    <div class="pricing-page">
+        @* 1. General rules of the price list *@
+        <MudPaper Outlined="true" Class="section-card">
+            <MudText Typo="Typo.h6" HtmlTag="h2">Γενικά</MudText>
+
+            <div class="pricing-grid">
+                <MudNumericField T="decimal" @bind-Value="form.VatRate" Label="ΦΠΑ %" Variant="Variant.Outlined"
+                                 Min="0" Max="100" Disabled="@_viewModel.IsSaving" />
+
+                <div class="pricing-field">
+                    <span class="pricing-field-label">Βήμα χρέωσης</span>
+                    <MudToggleGroup T="int" @bind-Value="form.StepMinutes" Color="Color.Primary"
+                                    Disabled="@_viewModel.IsSaving" Class="size-toggle">
+                        <MudToggleItem T="int" Value="15" Text="15 λεπτά" />
+                        <MudToggleItem T="int" Value="30" Text="30 λεπτά" />
+                        <MudToggleItem T="int" Value="60" Text="1 ώρα" />
+                    </MudToggleGroup>
+                </div>
+
+                <MudNumericField T="int" @bind-Value="form.GraceMinutes" Label="Λεπτά χάριτος" Variant="Variant.Outlined"
+                                 Min="0" Max="120" HelperText="Παραμονή έως τόσα λεπτά δεν χρεώνεται"
+                                 Disabled="@_viewModel.IsSaving" />
+
+                <MudTextField T="string" @bind-Value="_viewModel.NightStartText" InputType="InputType.Time"
+                              Label="Νύχτα από" Variant="Variant.Outlined" Disabled="@_viewModel.IsSaving" />
+
+                <MudTextField T="string" @bind-Value="_viewModel.NightEndText" InputType="InputType.Time"
+                              Label="Νύχτα έως" Variant="Variant.Outlined"
+                              HelperText="Ίδια ώρα με το «από» = χωρίς νυχτερινή τιμή"
+                              Disabled="@_viewModel.IsSaving" />
+
+                <MudTextField T="string" @bind-Value="_viewModel.CheckoutText" InputType="InputType.Time"
+                              Label="Αναχώρηση διανυκτέρευσης" Variant="Variant.Outlined"
+                              HelperText="Τη μέρα που λήγει το πακέτο"
+                              Disabled="@_viewModel.IsSaving" />
+            </div>
+        </MudPaper>
+
+        @* 2. Prices per spot size; holidays optionally have their own *@
+        <MudPaper Outlined="true" Class="section-card">
+            <MudText Typo="Typo.h6" HtmlTag="h2">Τιμές ανά μέγεθος θέσης</MudText>
+            <span class="muted">Κάθε βήμα που ξεκινά χρεώνεται ολόκληρο. Κενό ανώτατο = χωρίς όριο.</span>
+
+            @RateTable(_viewModel.RegularRates)
+
+            <MudSwitch T="bool" Value="_viewModel.HasHolidayPrices"
+                       ValueChanged="value => _viewModel.HasHolidayPrices = value"
+                       Color="Color.Primary" Disabled="@_viewModel.IsSaving"
+                       Label="Διαφορετικές τιμές για αργίες" />
+
+            @if (_viewModel.HasHolidayPrices)
+            {
+                <MudText Typo="Typo.subtitle1" HtmlTag="h3">Αργίες</MudText>
+                @RateTable(_viewModel.HolidayRates)
+            }
+            else
+            {
+                <span class="muted">Τις αργίες ισχύουν οι παραπάνω τιμές.</span>
+            }
+        </MudPaper>
+
+        @* 3. Overnight packages *@
+        <MudPaper Outlined="true" Class="section-card">
+            <MudText Typo="Typo.h6" HtmlTag="h2">Πακέτα διανυκτέρευσης</MudText>
+            <span class="muted">
+                Ο υπάλληλος τα επιλέγει στην είσοδο. Ισχύουν μέχρι την ώρα αναχώρησης της τελευταίας μέρας
+                και αντικαθιστούν τον τιμοκατάλογο.
+            </span>
+
+            @if (form.Packages.Count == 0)
+            {
+                <p class="muted">Δεν υπάρχουν πακέτα.</p>
+            }
+
+            @foreach (var package in form.Packages)
+            {
+                <div class="package-row">
+                    <MudTextField T="string" @bind-Value="package.Name" Label="Όνομα" Variant="Variant.Outlined"
+                                  Disabled="@_viewModel.IsSaving" Class="grow" />
+                    <MudSelect T="SpotSize" @bind-Value="package.Size" Label="Θέση" Variant="Variant.Outlined"
+                               Disabled="@_viewModel.IsSaving" Class="package-size">
+                        @foreach (var size in Enum.GetValues<SpotSize>())
+                        {
+                            <MudSelectItem T="SpotSize" Value="@size">@SpotSizeInfo.NameOf(size)</MudSelectItem>
+                        }
+                    </MudSelect>
+                    <MudNumericField T="int" @bind-Value="package.Nights" Label="Νύχτες" Variant="Variant.Outlined"
+                                     Min="1" Max="30" Disabled="@_viewModel.IsSaving" Class="package-number" />
+                    <MudNumericField T="decimal" @bind-Value="package.Price" Label="Τιμή €" Variant="Variant.Outlined"
+                                     Min="0" Disabled="@_viewModel.IsSaving" Class="package-number" />
+                    <MudIconButton Icon="@Icons.Material.Outlined.Delete" aria-label="Αφαίρεση πακέτου"
+                                   Disabled="@_viewModel.IsSaving" OnClick="() => _viewModel.RemovePackage(package)" />
+                </div>
+            }
+
+            <div>
+                <MudButton Variant="Variant.Outlined" Color="Color.Primary" StartIcon="@Icons.Material.Filled.Add"
+                           Disabled="@_viewModel.IsSaving" OnClick="_viewModel.AddPackage">
+                    Προσθήκη πακέτου
+                </MudButton>
+            </div>
+        </MudPaper>
+
+        @* Save: always a new version; tickets already inside keep the version of their entry *@
+        @if (_viewModel.SaveErrors.Count > 0)
+        {
+            <MudAlert Severity="Severity.Error" role="alert">
+                <ul class="error-list">
+                    @foreach (var error in _viewModel.SaveErrors)
+                    {
+                        <li>@error</li>
+                    }
+                </ul>
+            </MudAlert>
+        }
+        else if (_viewModel.JustSaved)
+        {
+            <MudAlert Severity="Severity.Success" role="status">Αποθηκεύτηκε νέα έκδοση του τιμοκαταλόγου.</MudAlert>
+        }
+
+        <div class="pricing-actions">
+            <span class="muted">
+                Τα οχήματα που είναι ήδη μέσα κρατούν την έκδοση της εισόδου τους· στην έξοδο ο υπάλληλος επιλέγει.
+            </span>
+            <MudButton Variant="Variant.Filled" Color="Color.Primary" Size="Size.Large"
+                       Disabled="@_viewModel.IsSaving" OnClick="_viewModel.SaveAsync">
+                @(_viewModel.IsSaving ? "Αποθήκευση..." : "Αποθήκευση νέας έκδοσης")
+            </MudButton>
+        </div>
+    </div>
+}
+
+@code {
+    [Parameter] public Guid BranchId { get; set; }
+
+    private PricingViewModel? _viewModel;
+
+    protected override async Task OnInitializedAsync()
+    {
+        _viewModel = new PricingViewModel(BranchesConsumer, TariffsConsumer, BranchId);
+        await _viewModel.InitializeAsync();
+    }
+
+    /// <summary>
+    /// One table of prices: a row per spot size, a column per price. The rows are the form's
+    /// own objects, so typing changes the form directly.
+    /// </summary>
+    private RenderFragment RateTable(List<TariffRateDto> rates) =>
+        @<div class="table-scroll">
+            <table class="price-table">
+                <thead>
+                    <tr>
+                        <th scope="col">Μέγεθος</th>
+                        <th scope="col">Βήμα ημέρας €</th>
+                        <th scope="col">Βήμα νύχτας €</th>
+                        <th scope="col">Ανώτατο 24ώρου €</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var rate in rates)
+                    {
+                        <tr>
+                            <th scope="row">@SpotSizeInfo.NameOf(rate.Size)</th>
+                            <td>
+                                <MudNumericField T="decimal" @bind-Value="rate.DayStepPrice" Variant="Variant.Outlined"
+                                                 Min="0" Margin="Margin.Dense" Disabled="@_viewModel!.IsSaving"
+                                                 aria-label="@($"Βήμα ημέρας, {SpotSizeInfo.NameOf(rate.Size)}")" />
+                            </td>
+                            <td>
+                                <MudNumericField T="decimal" @bind-Value="rate.NightStepPrice" Variant="Variant.Outlined"
+                                                 Min="0" Margin="Margin.Dense" Disabled="@_viewModel!.IsSaving"
+                                                 aria-label="@($"Βήμα νύχτας, {SpotSizeInfo.NameOf(rate.Size)}")" />
+                            </td>
+                            <td>
+                                <MudNumericField T="decimal?" @bind-Value="rate.DailyCap" Variant="Variant.Outlined"
+                                                 Min="0" Margin="Margin.Dense" Disabled="@_viewModel!.IsSaving"
+                                                 aria-label="@($"Ανώτατο 24ώρου, {SpotSizeInfo.NameOf(rate.Size)}")" />
+                            </td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>;
+}

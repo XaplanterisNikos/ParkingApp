@@ -12,6 +12,7 @@ using ParkingApp.Api.Services.Companies;
 using ParkingApp.Api.Services.Console;
 using ParkingApp.Api.Services.Employees;
 using ParkingApp.Api.Services.Floors;
+using ParkingApp.Api.Services.Pricing;
 using ParkingApp.Api.Services.Session;
 using ParkingApp.Api.Services.Spots;
 using ParkingApp.Api.Services.Tickets;
@@ -103,6 +104,8 @@ builder.Services.AddScoped<IEmployeeService, EmployeeService>();
 builder.Services.AddScoped<ISessionService, SessionService>();
 builder.Services.AddScoped<IConsoleService, ConsoleService>();
 builder.Services.AddScoped<ITicketService, TicketService>();
+builder.Services.AddScoped<ITariffService, TariffService>();   // owner price lists
+builder.Services.AddScoped<IHolidayService, HolidayService>(); // owner holiday calendar
 
 
 // Multi-tenancy: resolves the current tenant from the request's token.

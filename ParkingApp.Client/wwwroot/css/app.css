@@ -244,6 +244,15 @@ code {
             text-decoration: underline;
         }
 
+/* Page title with actions on the right; the actions wrap below on small screens */
+.page-header-row {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+}
+
 /* White card with a thin border (used on MudPaper Outlined) */
 .section-card {
     padding: 22px;
@@ -761,4 +770,109 @@ button.bay {
     border-style: dashed;
     border-color: #CDD3DA;
     color: #A3ACB7;
+}
+
+
+/* ------------------------------------------------------------------
+   Pricing: price list page and holiday calendar (owner)
+   ------------------------------------------------------------------ */
+
+/* Cards one under the other, full width */
+.pricing-page {
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+    max-width: 960px;
+}
+
+/* General fields: as many columns as fit, at least 220px each */
+.pricing-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+    gap: 16px;
+    align-items: start;
+}
+
+.pricing-field {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+}
+
+.pricing-field-label {
+    color: var(--mud-palette-text-secondary);
+    font-size: .8125rem;
+}
+
+/* The price table scrolls sideways on a phone instead of breaking the page */
+.table-scroll {
+    overflow-x: auto;
+}
+
+.price-table {
+    width: 100%;
+    min-width: 560px;
+    border-collapse: collapse;
+}
+
+    .price-table th,
+    .price-table td {
+        padding: 6px 8px;
+        text-align: left;
+        vertical-align: middle;
+    }
+
+    .price-table thead th {
+        color: var(--mud-palette-text-secondary);
+        font-size: .8125rem;
+        font-weight: 500;
+    }
+
+    .price-table tbody th {
+        font-weight: 600;
+        white-space: nowrap;
+    }
+
+/* One package per row: name grows, the rest keep their size */
+.package-row {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 12px;
+}
+
+    .package-row > .grow {
+        flex: 1 1 200px;
+    }
+
+.package-size {
+    flex: 0 1 180px;
+}
+
+.package-number {
+    flex: 0 1 120px;
+}
+
+/* Save area: the note on the left, the button on the right */
+.pricing-actions {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: space-between;
+    gap: 16px;
+}
+
+.error-list {
+    margin: 0;
+    padding-left: 18px;
+}
+
+.holiday-list {
+    display: flex;
+    flex-direction: column;
+}
+
+.holiday-date {
+    min-width: 130px;
+    font-weight: 600;
 }
