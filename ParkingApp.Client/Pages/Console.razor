@@ -4,11 +4,13 @@
 @using ParkingApp.Client.Services.Session
 @using ParkingApp.Client.ViewModels
 @using ParkingApp.Client.Consumers.Console
+@using ParkingApp.Client.Consumers.Tickets
 @inject ISessionService SessionService
 @inject IAuthService AuthService
 @inject AuthenticationStateProvider AuthStateProvider
 @inject NavigationManager Navigation
 @inject IConsoleConsumer ConsoleConsumer
+@inject ITicketsConsumer TicketsConsumer
 
 <PageTitle>Ταμείο · ParkingApp</PageTitle>
 
@@ -43,12 +45,31 @@
                         Error="@_viewModel.OccupancyError"
                         OnRefresh="_viewModel.RefreshAsync" />
 
+        @* The entry form and the map share the vehicle size and the selected spot through the view model *@
+        <EntryPanel SelectedVehicleSize="_viewModel.SelectedVehicleSize"
+                    OnSelectVehicleSize="_viewModel.SelectVehicleSizeAsync"
+                    SelectedPlateKind="_viewModel.SelectedPlateKind"
+                    OnSelectPlateKind="_viewModel.SetPlateKind"
+                    Plate="@_viewModel.PlateInput"
+                    OnPlateChanged="_viewModel.SetPlateInput"
+                    PlatePreview="@_viewModel.PlatePreview"
+                    PlateError="@_viewModel.PlateError"
+                    SelectedSpot="_viewModel.SelectedSpot"
+                    IsSuggested="_viewModel.IsSelectedSpotSuggested"
+                    CanSubmit="_viewModel.CanSubmitEntry"
+                    IsSubmitting="_viewModel.IsSubmittingEntry"
+                    IsLoading="_viewModel.IsLoadingSpotMap"
+                    Error="@_viewModel.EntryError"
+                    LastTicket="_viewModel.LastTicket"
+                    OnSubmit="_viewModel.SubmitEntryAsync" />
+
         <SpotMapPanel Map="_viewModel.SpotMap"
                       SelectedFloor="_viewModel.SelectedFloor"
                       SelectedVehicleSize="_viewModel.SelectedVehicleSize"
+                      SelectedSpotId="_viewModel.SelectedSpotId"
                       IsLoading="_viewModel.IsLoadingSpotMap"
                       Error="@_viewModel.SpotMapError"
-                      OnSelectVehicleSize="_viewModel.SelectVehicleSizeAsync"
+                      OnSelectSpot="_viewModel.SelectSpot"
                       OnSelectFloor="_viewModel.SelectFloor" />
     }
 </div>
@@ -59,7 +80,7 @@
     protected override async Task OnInitializedAsync()
     {
         _viewModel = new ConsoleViewModel(
-            SessionService, ConsoleConsumer, AuthService, AuthStateProvider, Navigation);
+            SessionService, ConsoleConsumer, TicketsConsumer, AuthService, AuthStateProvider, Navigation);
         await _viewModel.InitializeAsync();
     }
 }

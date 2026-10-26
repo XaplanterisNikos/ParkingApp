@@ -3,26 +3,9 @@
 @using ParkingApp.Shared.Floors
 @using ParkingApp.Shared.Spots
 
-@* Presentational: shows the spot map it is given; loading, suggestion and floor rules belong to the view model. *@
+@* Presentational: shows the spot map it is given; loading, suggestion, selection and floor rules
+   belong to the view model. The vehicle size is chosen in the entry panel. *@
 <MudPaper Outlined="true" Class="section-card spot-map">
-    @* Vehicle size drives the server's suggestion; pressing the selected size again clears it *@
-    <div class="spot-map-header">
-        <span class="spot-map-label">Όχημα</span>
-        <MudToggleGroup T="SpotSize?"
-                        Value="SelectedVehicleSize"
-                        ValueChanged="OnSelectVehicleSize"
-                        SelectionMode="SelectionMode.ToggleSelection"
-                        Color="Color.Primary"
-                        Disabled="@IsLoading"
-                        aria-label="Μέγεθος οχήματος"
-                        Class="vehicle-toggle">
-            @foreach (var size in Enum.GetValues<SpotSize>())
-            {
-                <MudToggleItem T="SpotSize?" Value="@size" Text="@SpotSizeInfo.NameOf(size)" />
-            }
-        </MudToggleGroup>
-    </div>
-
     @* Thin bar while reloading; the old map stays visible underneath *@
     @if (IsLoading)
     {
@@ -81,7 +64,8 @@
                         <div class="bay-legend" aria-hidden="true">
                             <span><span class="legend-swatch legend-free"></span>Ελεύθερη</span>
                             <span><span class="legend-swatch legend-occupied"></span>Πιασμένη</span>
-                            <span><span class="legend-swatch legend-selected"></span>Προτεινόμενη</span>
+                            <span><span class="legend-swatch legend-selected"></span>Επιλεγμένη</span>
+                            <span><MudIcon Icon="@Icons.Material.Filled.Star" Size="Size.Small" />Προτεινόμενη</span>
                         </div>
                     </div>
 
@@ -93,23 +77,21 @@
                             <div class="bay-row">
                                 @foreach (var spot in sizeGroup)
                                 {
-                                    var isSuggested = spot.Id == Map.SuggestedSpotId;
-
-                                    <span class="@BayCss(spot)" title="@BayTitle(spot)">
-                                        @if (isSuggested)
-                                        {
-                                            <MudIcon Icon="@Icons.Material.Filled.Star" Size="Size.Small" aria-hidden="true" />
-                                        }
-                                        else if (spot.IsOccupied)
-                                        {
-                                            <MudIcon Icon="@Icons.Material.Outlined.DirectionsCar" Size="Size.Small" aria-hidden="true" />
-                                        }
-                                        else if (!IsTooSmall(spot))
-                                        {
-                                            <span class="bay-lamp" aria-hidden="true"></span>
-                                        }
-                                        <span>@spot.Number</span>
-                                    </span>
+                                    if (CanSelect(spot))
+                                    {
+                                        @* A free spot that fits the vehicle: a real button, reachable with the keyboard *@
+                                        <button type="button"
+                                                class="@BayCss(spot)"
+                                                title="@BayTitle(spot)"
+                                                aria-pressed="@(spot.Id == SelectedSpotId ? "true" : "false")"
+                                                @onclick="() => OnSelectSpot.InvokeAsync(spot.Id)">
+                                            @BayContent(spot)
+                                        </button>
+                                    }
+                                    else
+                                    {
+                                        <span class="@BayCss(spot)" title="@BayTitle(spot)">@BayContent(spot)</span>
+                                    }
                                 }
                             </div>
                         </div>
@@ -127,32 +109,63 @@
     /// <summary>The floor currently shown, or null when the branch has no floors.</summary>
     [Parameter] public FloorMapDto? SelectedFloor { get; set; }
 
-    /// <summary>The declared vehicle size, or null before choosing one.</summary>
+    /// <summary>The declared vehicle size, or null before choosing one (no spot can be selected then).</summary>
     [Parameter] public SpotSize? SelectedVehicleSize { get; set; }
 
-    /// <summary>True while the map reloads (disables the size buttons; the old map stays visible).</summary>
+    /// <summary>The spot the ticket will be issued for, or null.</summary>
+    [Parameter] public Guid? SelectedSpotId { get; set; }
+
+    /// <summary>True while the map reloads (the old map stays visible).</summary>
     [Parameter] public bool IsLoading { get; set; }
 
     /// <summary>Error from the last load, shown instead of the map.</summary>
     [Parameter] public string? Error { get; set; }
 
-    /// <summary>Raised with the newly declared vehicle size, or null to clear it.</summary>
-    [Parameter] public EventCallback<SpotSize?> OnSelectVehicleSize { get; set; }
+    /// <summary>Raised when the employee picks a free spot that fits the vehicle.</summary>
+    [Parameter] public EventCallback<Guid> OnSelectSpot { get; set; }
 
     /// <summary>Raised when the employee switches to another floor.</summary>
     [Parameter] public EventCallback<FloorType> OnSelectFloor { get; set; }
 
     /// <summary>
     /// Enum values are ordered by size (Motorcycle &lt; Car &lt; LargeCar), so "&lt;" means "does not fit".
-    /// Visual hint only — the server enforces the rule when the entry is confirmed (3β.2β).
+    /// Visual hint only — the server enforces the rule when the entry is confirmed.
     /// </summary>
     private bool IsTooSmall(SpotStatusDto spot) =>
         SelectedVehicleSize is { } size && spot.Size < size;
 
-    /// <summary>CSS classes of a bay: the suggestion first, then occupied, too small, or free.</summary>
+    /// <summary>
+    /// True when the spot can be picked: a size was declared, the spot is free and it is not too small.
+    /// Visual rule only — the view model and the server check it again.
+    /// </summary>
+    private bool CanSelect(SpotStatusDto spot) =>
+        SelectedVehicleSize is not null && !spot.IsOccupied && !IsTooSmall(spot);
+
+    /// <summary>
+    /// The inside of a bay: a star for the suggestion, a car for an occupied spot,
+    /// a green lamp for a free spot that fits; then the spot code.
+    /// </summary>
+    private RenderFragment BayContent(SpotStatusDto spot) =>
+        @<text>
+            @if (spot.Id == Map.SuggestedSpotId)
+            {
+                <MudIcon Icon="@Icons.Material.Filled.Star" Size="Size.Small" aria-hidden="true" />
+            }
+            else if (spot.IsOccupied)
+            {
+                <MudIcon Icon="@Icons.Material.Outlined.DirectionsCar" Size="Size.Small" aria-hidden="true" />
+            }
+            else if (!IsTooSmall(spot))
+            {
+                <span class="bay-lamp" aria-hidden="true"></span>
+            }
+            <span>@spot.Number</span>
+        </text>;
+
+    /// <summary>CSS classes of a bay: the selected spot first, then occupied, too small, or free.</summary>
     private string BayCss(SpotStatusDto spot)
     {
-        if (spot.Id == Map.SuggestedSpotId) return "bay bay-selected";
+        if (spot.Id == SelectedSpotId) return "bay bay-selected";
         if (spot.IsOccupied) return "bay bay-occupied";
         if (IsTooSmall(spot)) return "bay bay-too-small";
         return "bay";
@@ -161,7 +174,8 @@
     /// <summary>Tooltip with the same information as the colours, in words — colour is never the only cue.</summary>
     private string BayTitle(SpotStatusDto spot)
     {
-        var status = spot.Id == Map.SuggestedSpotId ? "προτεινόμενη"
+        var status = spot.Id == SelectedSpotId ? "επιλεγμένη"
+            : spot.Id == Map.SuggestedSpotId ? "προτεινόμενη"
             : spot.IsOccupied ? "πιασμένη"
             : IsTooSmall(spot) ? "μικρή για το όχημα"
             : "ελεύθερη";

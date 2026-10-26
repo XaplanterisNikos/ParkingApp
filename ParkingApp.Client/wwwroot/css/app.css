@@ -585,17 +585,57 @@ code {
     margin-left: auto;
 }
 
-/* Spot map: vehicle choice on top, floors on the left, bays on the right */
-.spot-map-header {
+/* Entry form: one row per question (vehicle, plate, spot), the button last */
+.entry-form {
+    display: flex;
+    flex-direction: column;
+    gap: 18px;
+}
+
+.entry-row {
     display: flex;
     flex-wrap: wrap;
     align-items: center;
     gap: 14px;
 }
 
-.spot-map-label {
+/* Fixed label width, so the three rows line up */
+.entry-label {
+    min-width: 72px;
     font-weight: 600;
 }
+
+/* The plate field and the camera button side by side */
+.entry-plate {
+    display: flex;
+    align-items: flex-start;
+    gap: 8px;
+    flex: 1 1 260px;
+    max-width: 380px;
+}
+
+/* Plates are read in capitals; the stored form is decided by the server anyway */
+.entry-plate-input input {
+    text-transform: uppercase;
+    letter-spacing: .08em;
+    font-weight: 600;
+}
+
+.entry-spot strong {
+    font-size: 1.125rem;
+    font-variant-numeric: tabular-nums;
+}
+
+.entry-hint {
+    font-size: .8125rem;
+}
+
+.entry-actions {
+    display: flex;
+    justify-content: flex-end;
+}
+
+/* Spot map: floors on the left, bays on the right */
 
 .vehicle-toggle .mud-button-root {
     min-height: 44px;
@@ -701,6 +741,20 @@ code {
     border-color: var(--mud-palette-primary);
     color: var(--mud-palette-primary-text);
 }
+
+/* A free bay that fits the vehicle is a button: show that it can be clicked */
+button.bay {
+    cursor: pointer;
+}
+
+    button.bay:hover:not(.bay-selected) {
+        border-color: var(--mud-palette-primary);
+    }
+
+    button.bay:focus-visible {
+        outline: 3px solid var(--mud-palette-primary);
+        outline-offset: 2px;
+    }
 
 .bay-too-small {
     background: transparent;

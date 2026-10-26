@@ -1,0 +1,190 @@
+﻿@namespace ParkingApp.Client.Components
+@using ParkingApp.Shared.Console
+@using ParkingApp.Shared.Spots
+@using ParkingApp.Shared.Tickets
+
+@* Presentational: shows the entry form it is given; rules, loading and submitting belong to the view model. *@
+<MudPaper Outlined="true" Class="section-card entry-panel">
+    <MudText Typo="Typo.h5" HtmlTag="h2">Νέα είσοδος</MudText>
+
+    @* A form, so Enter in the plate field issues the ticket *@
+    <form class="entry-form" @onsubmit="OnSubmit" @onsubmit:preventDefault="true">
+        @* 1. Vehicle size: drives the server's suggestion; pressing the selected size again clears it *@
+        <div class="entry-row">
+            <span class="entry-label">Όχημα</span>
+            <MudToggleGroup T="SpotSize?"
+                            Value="SelectedVehicleSize"
+                            ValueChanged="OnSelectVehicleSize"
+                            SelectionMode="SelectionMode.ToggleSelection"
+                            Color="Color.Primary"
+                            Disabled="@(IsLoading || IsSubmitting)"
+                            aria-label="Μέγεθος οχήματος"
+                            Class="vehicle-toggle">
+                @foreach (var size in Enum.GetValues<SpotSize>())
+                {
+                    <MudToggleItem T="SpotSize?" Value="@size" Text="@SpotSizeInfo.NameOf(size)" />
+                }
+            </MudToggleGroup>
+        </div>
+
+        @* 2. Plate: kind, the text itself, and the camera (not available yet) *@
+        <div class="entry-row">
+            <span class="entry-label">Πινακίδα</span>
+            <MudToggleGroup T="PlateKind"
+                            Value="SelectedPlateKind"
+                            ValueChanged="OnSelectPlateKind"
+                            SelectionMode="SelectionMode.SingleSelection"
+                            Color="Color.Primary"
+                            Disabled="@IsSubmitting"
+                            aria-label="Είδος πινακίδας"
+                            Class="vehicle-toggle">
+                <MudToggleItem T="PlateKind" Value="PlateKind.Greek" Text="Ελληνική" />
+                <MudToggleItem T="PlateKind" Value="PlateKind.Foreign" Text="Ξένη" />
+            </MudToggleGroup>
+
+            <div class="entry-plate">
+                @* Immediate: the preview below follows every key press *@
+                <MudTextField T="string"
+                              Value="@Plate"
+                              ValueChanged="OnPlateChanged"
+                              Immediate="true"
+                              Label="Αριθμός πινακίδας"
+                              Variant="Variant.Outlined"
+                              Error="@(PlateError is not null)"
+                              ErrorText="@PlateError"
+                              HelperText="@PlateHelperText"
+                              Disabled="@IsSubmitting"
+                              Class="entry-plate-input" />
+
+                @* Camera reading is planned for a later slice; the button shows where it will live *@
+                <MudTooltip Text="Η ανάγνωση με κάμερα έρχεται σύντομα">
+                    <MudIconButton Icon="@Icons.Material.Outlined.PhotoCamera"
+                                   Variant="Variant.Outlined"
+                                   Disabled="true"
+                                   aria-label="Κάμερα (σύντομα)" />
+                </MudTooltip>
+            </div>
+        </div>
+
+        @* 3. Spot: the suggestion or the employee's own choice from the map *@
+        <div class="entry-row">
+            <span class="entry-label">Θέση</span>
+            @if (SelectedVehicleSize is null)
+            {
+                <span class="muted">Διάλεξε πρώτα το μέγεθος του οχήματος.</span>
+            }
+            else if (SelectedSpot is null)
+            {
+                <span class="muted">Διάλεξε μια ελεύθερη θέση στον χάρτη.</span>
+            }
+            else
+            {
+                <span class="entry-spot">
+                    <strong>@SelectedSpot.Number</strong>
+                    <span class="muted">
+                        · @SpotSizeInfo.NameOf(SelectedSpot.Size)
+                        · @(IsSuggested ? "προτεινόμενη" : "επιλογή σου")
+                    </span>
+                </span>
+                <span class="muted entry-hint">Για άλλη θέση, πάτησέ την στον χάρτη.</span>
+            }
+        </div>
+
+        @if (!string.IsNullOrEmpty(Error))
+        {
+            <MudAlert Severity="Severity.Error" Dense="true" role="alert">@Error</MudAlert>
+        }
+        else if (LastTicket is not null)
+        {
+            @* Confirmation of the last entry; it stays until the next attempt *@
+            <MudAlert Severity="Severity.Success" Dense="true" role="status">
+                Εκδόθηκε εισιτήριο:
+                <strong>@LicensePlateNormalizer.ToDisplay(LastTicket.LicensePlate, LastTicket.PlateKind)</strong>
+                στη θέση <strong>@LastTicket.SpotNumber</strong>, ώρα @AthensTime(LastTicket.EnteredAt).
+            </MudAlert>
+        }
+
+        <div class="entry-actions">
+            <MudButton ButtonType="ButtonType.Submit"
+                       Variant="Variant.Filled"
+                       Color="Color.Primary"
+                       Size="Size.Large"
+                       StartIcon="@Icons.Material.Filled.ConfirmationNumber"
+                       Disabled="@(!CanSubmit)">
+                @(IsSubmitting ? "Έκδοση..." : "Έκδοση εισιτηρίου")
+            </MudButton>
+        </div>
+    </form>
+</MudPaper>
+
+@code {
+    /// <summary>The declared vehicle size, or null before choosing one.</summary>
+    [Parameter] public SpotSize? SelectedVehicleSize { get; set; }
+
+    /// <summary>Raised with the newly declared vehicle size, or null to clear it.</summary>
+    [Parameter] public EventCallback<SpotSize?> OnSelectVehicleSize { get; set; }
+
+    /// <summary>The kind of the plate being typed.</summary>
+    [Parameter] public PlateKind SelectedPlateKind { get; set; }
+
+    /// <summary>Raised when the employee switches between a Greek and a foreign plate.</summary>
+    [Parameter] public EventCallback<PlateKind> OnSelectPlateKind { get; set; }
+
+    /// <summary>The plate exactly as typed.</summary>
+    [Parameter] public string Plate { get; set; } = string.Empty;
+
+    /// <summary>Raised on every key press in the plate field.</summary>
+    [Parameter] public EventCallback<string> OnPlateChanged { get; set; }
+
+    /// <summary>The plate as it will be stored and shown, or null while it is empty or invalid.</summary>
+    [Parameter] public string? PlatePreview { get; set; }
+
+    /// <summary>Why the typed plate is invalid, or null.</summary>
+    [Parameter] public string? PlateError { get; set; }
+
+    /// <summary>The spot the ticket will be issued for, or null.</summary>
+    [Parameter] public SpotStatusDto? SelectedSpot { get; set; }
+
+    /// <summary>True when the selected spot is the server's suggestion.</summary>
+    [Parameter] public bool IsSuggested { get; set; }
+
+    /// <summary>True when the form is complete and the button can be pressed.</summary>
+    [Parameter] public bool CanSubmit { get; set; }
+
+    /// <summary>True while the entry request is in flight.</summary>
+    [Parameter] public bool IsSubmitting { get; set; }
+
+    /// <summary>True while the spot map reloads (the size buttons wait for it).</summary>
+    [Parameter] public bool IsLoading { get; set; }
+
+    /// <summary>The server's message when the last entry failed.</summary>
+    [Parameter] public string? Error { get; set; }
+
+    /// <summary>The ticket of the last successful entry, or null.</summary>
+    [Parameter] public TicketDto? LastTicket { get; set; }
+
+    /// <summary>Raised when the employee issues the ticket (button or Enter).</summary>
+    [Parameter] public EventCallback OnSubmit { get; set; }
+
+    /// <summary>The line under the plate field: the stored form when valid, a short hint otherwise.</summary>
+    private string PlateHelperText =>
+        PlatePreview is null ? "Κενά και παύλες δεν χρειάζονται." : $"Θα καταχωριστεί ως {PlatePreview}";
+
+    /// <summary>
+    /// Formats a UTC-based time as hours and minutes in Athens time. If the browser has no
+    /// time zone data, it falls back to the browser's local time instead of failing.
+    /// </summary>
+    /// <param name="time">The time to show.</param>
+    private static string AthensTime(DateTimeOffset time)
+    {
+        try
+        {
+            var athens = TimeZoneInfo.FindSystemTimeZoneById("Europe/Athens");
+            return TimeZoneInfo.ConvertTime(time, athens).ToString("HH:mm");
+        }
+        catch (TimeZoneNotFoundException)
+        {
+            return time.ToLocalTime().ToString("HH:mm");
+        }
+    }
+}
