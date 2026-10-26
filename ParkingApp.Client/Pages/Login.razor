@@ -59,10 +59,17 @@
         _isSubmitting = true;
         _error = null;
 
-        var (success, error) = await AuthService.LoginAsync(_model);
-
-        if (success)
+        try
         {
+            var (success, error) = await AuthService.LoginAsync(_model);
+
+            if (!success)
+            {
+                // Show the server's message (e.g. wrong credentials) — the user can simply try again
+                _error = error;
+                return;
+            }
+
             // Read the freshly-stored token to decide where this user lands.
             var authState = await AuthStateProvider.GetAuthenticationStateAsync();
 
@@ -74,6 +81,16 @@
             {
                 Navigation.NavigateTo("");
             }
+        }
+        catch
+        {
+            // The API could not be reached (not running, network down): no envelope came back
+            _error = "Could not reach the server.";
+        }
+        finally
+        {
+            // Runs on every exit path, so the button is never left disabled
+            _isSubmitting = false;
         }
     }
 }
