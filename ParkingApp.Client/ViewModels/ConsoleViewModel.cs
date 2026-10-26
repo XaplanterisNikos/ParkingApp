@@ -7,6 +7,7 @@ using ParkingApp.Client.Services.Session;
 using ParkingApp.Shared.Auth;
 using ParkingApp.Shared.Console;
 using ParkingApp.Shared.Floors;
+using ParkingApp.Shared.Pricing;
 using ParkingApp.Shared.Session;
 using ParkingApp.Shared.Spots;
 using ParkingApp.Shared.Tickets;
@@ -35,7 +36,7 @@ public class ConsoleViewModel
 	/// </summary>
 	/// <param name="sessionService">Loads the employee's branches and selects the active one.</param>
 	/// <param name="consoleConsumer">Loads the active branch's occupancy.</param>
-	/// <param name="ticketsConsumer">Registers vehicle entries.</param>
+	/// <param name="ticketsConsumer">Registers entries and exits, and loads active tickets and charge previews.</param>
 	/// <param name="authService">Used for sign-out from the picker.</param>
 	/// <param name="authStateProvider">Reads the current token's claims.</param>
 	/// <param name="navigationManager">Navigation after sign-out.</param>
@@ -180,12 +181,107 @@ public class ConsoleViewModel
 		}
 	}
 
+	/// <summary>The overnight packages of the branch's current price list (all sizes).</summary>
+	public List<OvernightPackageDto> Packages { get; private set; } = new();
+
+	/// <summary>The package the employee chose; it only counts while it fits the selected spot.</summary>
+	public Guid? SelectedPackageId { get; private set; }
+
+	/// <summary>The packages that fit the selected spot (packages are priced per spot size).</summary>
+	public List<OvernightPackageDto> AvailablePackages =>
+		SelectedSpot is { } spot
+			? Packages.Where(package => package.Size == spot.Size).ToList()
+			: new List<OvernightPackageDto>();
+
+	/// <summary>
+	/// The package that will be sent: the chosen one if it still fits the selected spot, else none.
+	/// Changing the spot to another size therefore drops the package by itself.
+	/// </summary>
+	public Guid? EffectivePackageId =>
+		AvailablePackages.Any(package => package.Id == SelectedPackageId) ? SelectedPackageId : null;
+
 	/// <summary>True when everything the entry needs is in place and no request is running.</summary>
 	public bool CanSubmitEntry =>
 		!IsSubmittingEntry
 		&& SelectedVehicleSize is not null
 		&& CanTake(SelectedSpot)
 		&& PlatePreview is not null;
+	#endregion
+
+	#region Exit state
+	/// <summary>The active tickets of the branch, newest first (for the search and the map).</summary>
+	public List<TicketDto> ActiveTickets { get; private set; } = new();
+
+	/// <summary>What the employee typed in the exit search (a plate or a spot code).</summary>
+	public string ExitSearchText { get; private set; } = string.Empty;
+
+	/// <summary>
+	/// The active tickets that match the search: by spot code, or by plate typed with Greek or
+	/// Latin letters (the plate goes through the same normalizer as at entry). At most 8.
+	/// </summary>
+	public List<TicketDto> ExitSearchResults
+	{
+		get
+		{
+			var query = ExitSearchText.Trim();
+
+			if (query.Length == 0)
+			{
+				return new List<TicketDto>();
+			}
+
+			// Capitals, without the separators people type out of habit
+			var compact = new string(query.ToUpperInvariant().Where(character => character is not (' ' or '-' or '.')).ToArray());
+
+			// A plate typed in Greek becomes its stored Latin form; anything else stays as typed
+			var plateQuery = LicensePlateNormalizer.TryNormalize(query, PlateKind.Greek, out var latin, out _)
+				? latin
+				: compact;
+
+			return ActiveTickets
+				.Where(ticket => ticket.SpotNumber.Contains(compact, StringComparison.Ordinal)
+					|| ticket.LicensePlate.Contains(plateQuery, StringComparison.Ordinal)
+					|| ticket.LicensePlate.Contains(compact, StringComparison.Ordinal))
+				.Take(8)
+				.ToList();
+		}
+	}
+
+	/// <summary>The ticket whose card is open, or null.</summary>
+	public Guid? SelectedTicketId { get; private set; }
+
+	/// <summary>The charge preview of the open ticket, or null while loading or closed.</summary>
+	public ExitQuoteDto? ExitQuote { get; private set; }
+
+	/// <summary>True while the charge preview is loading.</summary>
+	public bool IsLoadingQuote { get; private set; }
+
+	/// <summary>The chosen way to charge (index in the quote's options; the first is the suggestion).</summary>
+	public int SelectedOptionIndex { get; private set; }
+
+	/// <summary>The chosen way to charge, or null when there is no quote.</summary>
+	public ExitChargeOptionDto? SelectedOption =>
+		ExitQuote is { Options.Count: > 0 } quote
+			? quote.Options[Math.Clamp(SelectedOptionIndex, 0, quote.Options.Count - 1)]
+			: null;
+
+	/// <summary>True after the first press of "close charge": the next press confirms the exit.</summary>
+	public bool IsConfirmingExit { get; private set; }
+
+	/// <summary>True while the exit request is in flight.</summary>
+	public bool IsExiting { get; private set; }
+
+	/// <summary>The last exit problem (server message or connection), shown in the exit card.</summary>
+	public string? ExitError { get; private set; }
+
+	/// <summary>The ticket of the last successful exit, shown as a confirmation.</summary>
+	public TicketDto? LastExit { get; private set; }
+
+	/// <summary>The spot of the open ticket; the map shows it larger.</summary>
+	public Guid? FocusedSpotId =>
+		SelectedTicketId is { } ticketId
+			? ActiveTickets.FirstOrDefault(ticket => ticket.Id == ticketId)?.SpotId ?? ExitQuote?.Ticket.SpotId
+			: null;
 	#endregion
 
 	#region Public methods
@@ -263,8 +359,8 @@ public class ConsoleViewModel
 	/// </summary>
 	public async Task RefreshAsync()
 	{
-		// Both loads catch their own errors and report them separately, so WhenAll never throws here
-		await Task.WhenAll(LoadOccupancyAsync(), LoadSpotMapAsync());
+		// Every load catches its own errors and reports them separately, so WhenAll never throws here
+		await Task.WhenAll(LoadOccupancyAsync(), LoadSpotMapAsync(), LoadPackagesAsync(), LoadActiveTicketsAsync());
 	}
 
 	/// <summary>
@@ -411,13 +507,16 @@ public class ConsoleViewModel
 				LicensePlate = PlateInput,
 				PlateKind = SelectedPlateKind,
 				VehicleSize = SelectedVehicleSize!.Value,
-				SpotId = SelectedSpotId!.Value
+				SpotId = SelectedSpotId!.Value,
+				OvernightPackageId = EffectivePackageId
 			});
 
 			if (result is { Success: true, Value: not null })
 			{
 				LastTicket = result.Value;
 				PlateInput = string.Empty;
+				// The next customer starts with a normal stay
+				SelectedPackageId = null;
 			}
 			else
 			{
@@ -432,9 +531,162 @@ public class ConsoleViewModel
 
 		// After a success, move to the next suggestion and its floor. After a failure, keep the
 		// employee's spot if it is still free (e.g. the plate was the problem), else the suggestion.
-		await Task.WhenAll(LoadOccupancyAsync(), LoadSpotMapAsync(focusSuggestion: LastTicket is not null));
+		await Task.WhenAll(
+			LoadOccupancyAsync(),
+			LoadSpotMapAsync(focusSuggestion: LastTicket is not null),
+			LoadActiveTicketsAsync());
 
 		IsSubmittingEntry = false;
+	}
+
+	/// <summary>Chooses an overnight package for the entry, or null for a normal stay.</summary>
+	/// <param name="packageId">The package, or null.</param>
+	public void SelectPackage(Guid? packageId)
+	{
+		SelectedPackageId = packageId;
+		EntryError = null;
+	}
+
+	/// <summary>Stores what the employee typed in the exit search; a new search closes the open card.</summary>
+	/// <param name="value">The search text.</param>
+	public void SetExitSearch(string? value)
+	{
+		ExitSearchText = value ?? string.Empty;
+		CloseTicket();
+		LastExit = null;
+		ExitError = null;
+	}
+
+	/// <summary>
+	/// Opens a ticket's card: shows its floor on the map and loads what the exit would cost now.
+	/// </summary>
+	/// <param name="ticketId">The active ticket.</param>
+	public async Task SelectTicketAsync(Guid ticketId)
+	{
+		SelectedTicketId = ticketId;
+		ExitQuote = null;
+		ExitError = null;
+		LastExit = null;
+		IsConfirmingExit = false;
+		SelectedOptionIndex = 0;
+
+		// Show the floor of the ticket's spot, so the bay is visible
+		var ticket = ActiveTickets.FirstOrDefault(item => item.Id == ticketId);
+		var floor = ticket is null
+			? null
+			: SpotMap.Floors.FirstOrDefault(item => item.Spots.Any(spot => spot.Id == ticket.SpotId));
+
+		if (floor is not null)
+		{
+			SelectedFloorType = floor.Type;
+		}
+
+		await LoadQuoteAsync();
+	}
+
+	/// <summary>Opens the card of the ticket in an occupied spot that was clicked on the map.</summary>
+	/// <param name="spotId">The occupied spot.</param>
+	public async Task SelectOccupiedSpotAsync(Guid spotId)
+	{
+		var ticket = ActiveTickets.FirstOrDefault(item => item.SpotId == spotId);
+
+		// The list may be older than the map (another desk): reload it once before giving up
+		if (ticket is null)
+		{
+			await LoadActiveTicketsAsync();
+			ticket = ActiveTickets.FirstOrDefault(item => item.SpotId == spotId);
+		}
+
+		if (ticket is null)
+		{
+			ExitError = "Δεν βρέθηκε ενεργό εισιτήριο για αυτή τη θέση. Πατήστε ανανέωση.";
+			return;
+		}
+
+		await SelectTicketAsync(ticket.Id);
+	}
+
+	/// <summary>Calculates the open ticket's charge again (the amount grows with time).</summary>
+	public async Task RefreshQuoteAsync()
+	{
+		IsConfirmingExit = false;
+		await LoadQuoteAsync();
+	}
+
+	/// <summary>Chooses one of the quote's ways to charge.</summary>
+	/// <param name="index">The option's index in the quote.</param>
+	public void SelectOption(int index)
+	{
+		SelectedOptionIndex = index;
+		// A different amount must be confirmed again
+		IsConfirmingExit = false;
+	}
+
+	/// <summary>First press of "close charge": asks for a confirmation with the amount.</summary>
+	public void RequestExit()
+	{
+		if (SelectedOption is not null)
+		{
+			IsConfirmingExit = true;
+		}
+	}
+
+	/// <summary>Cancels the confirmation; the card stays open.</summary>
+	public void CancelExit() => IsConfirmingExit = false;
+
+	/// <summary>Closes the card without an exit.</summary>
+	public void CloseTicket()
+	{
+		SelectedTicketId = null;
+		ExitQuote = null;
+		IsConfirmingExit = false;
+		SelectedOptionIndex = 0;
+	}
+
+	/// <summary>
+	/// Confirms the exit with the chosen way to charge. The server calculates the final amount
+	/// at this moment. Either way the panels reload: the spot is free now, or another desk acted first.
+	/// </summary>
+	public async Task ConfirmExitAsync()
+	{
+		if (SelectedTicketId is not { } ticketId || SelectedOption is not { } option)
+		{
+			return;
+		}
+
+		IsExiting = true;
+		ExitError = null;
+
+		try
+		{
+			var result = await _ticketsConsumer.ExitAsync(ticketId, new ExitTicketRequest
+			{
+				// Only the choice is sent; the amount is the server's
+				TariffVersionId = option.TariffVersionId,
+				Overstay = option.Overstay
+			});
+
+			if (result is { Success: true, Value: not null })
+			{
+				LastExit = result.Value;
+				ExitSearchText = string.Empty;
+				CloseTicket();
+			}
+			else
+			{
+				ExitError = result?.Message ?? "Η έξοδος δεν καταχωρίστηκε. Δοκιμάστε ξανά.";
+			}
+		}
+		catch
+		{
+			ExitError = "Δεν υπάρχει σύνδεση με τον server. Δοκιμάστε ξανά σε λίγο.";
+		}
+
+		IsConfirmingExit = false;
+
+		await Task.WhenAll(LoadOccupancyAsync(), LoadSpotMapAsync(), LoadActiveTicketsAsync());
+
+		IsExiting = false;
 	}
 
 	/// <summary>Abandons the choice and logs out — the escape hatch from the picker.</summary>
@@ -478,6 +730,91 @@ public class ConsoleViewModel
 		}
 
 		return SpotMap.SuggestedSpotId;
+	}
+
+	/// <summary>Loads the overnight packages for the entry form. A failure only hides the package row.</summary>
+	private async Task LoadPackagesAsync()
+	{
+		try
+		{
+			var result = await _consoleConsumer.GetOvernightPackagesAsync();
+			Packages = result is { Success: true, Value: not null } ? result.Value : new List<OvernightPackageDto>();
+		}
+		catch
+		{
+			// Packages are optional: without them the entry still works with the normal price list
+			Packages = new List<OvernightPackageDto>();
+		}
+	}
+
+	/// <summary>
+	/// Loads the active tickets. If the open card's ticket is no longer active (closed by another
+	/// desk), the card closes.
+	/// </summary>
+	private async Task LoadActiveTicketsAsync()
+	{
+		try
+		{
+			var result = await _ticketsConsumer.GetActiveAsync();
+
+			if (result is not { Success: true, Value: not null })
+			{
+				ExitError = result?.Message ?? "Δεν ήταν δυνατή η φόρτωση των ενεργών εισιτηρίων.";
+				return;
+			}
+
+			ActiveTickets = result.Value;
+
+			if (SelectedTicketId is { } ticketId && ActiveTickets.All(ticket => ticket.Id != ticketId))
+			{
+				CloseTicket();
+			}
+		}
+		catch
+		{
+			ExitError = "Δεν υπάρχει σύνδεση με τον server. Δοκιμάστε ξανά σε λίγο.";
+		}
+	}
+
+	/// <summary>Loads the charge preview of the open ticket.</summary>
+	private async Task LoadQuoteAsync()
+	{
+		if (SelectedTicketId is not { } ticketId)
+		{
+			return;
+		}
+
+		IsLoadingQuote = true;
+		ExitError = null;
+
+		try
+		{
+			var result = await _ticketsConsumer.GetQuoteAsync(ticketId);
+
+			if (result is { Success: true, Value: not null })
+			{
+				ExitQuote = result.Value;
+				// Keep the employee's choice if it still exists, else the suggestion
+				if (SelectedOptionIndex >= ExitQuote.Options.Count)
+				{
+					SelectedOptionIndex = 0;
+				}
+			}
+			else
+			{
+				ExitQuote = null;
+				ExitError = result?.Message ?? "Δεν ήταν δυνατός ο υπολογισμός της χρέωσης.";
+			}
+		}
+		catch
+		{
+			ExitQuote = null;
+			ExitError = "Δεν υπάρχει σύνδεση με τον server. Δοκιμάστε ξανά σε λίγο.";
+		}
+		finally
+		{
+			IsLoadingQuote = false;
+		}
 	}
 
 	/// <summary>Reads the current token's claims to see if a branch is already active.</summary>

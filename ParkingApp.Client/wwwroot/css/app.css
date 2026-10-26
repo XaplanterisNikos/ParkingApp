@@ -751,6 +751,14 @@ code {
     color: var(--mud-palette-primary-text);
 }
 
+/* The bay of the ticket open in the exit card: larger and ringed, so the eye finds it */
+.bay-focused {
+    transform: scale(1.12);
+    box-shadow: 0 0 0 3px var(--mud-palette-warning);
+    position: relative;
+    z-index: 1;
+}
+
 /* A free bay that fits the vehicle is a button: show that it can be clicked */
 button.bay {
     cursor: pointer;
@@ -875,4 +883,105 @@ button.bay {
 .holiday-date {
     min-width: 130px;
     font-weight: 600;
+}
+
+
+/* ------------------------------------------------------------------
+   Console: entry and exit cards side by side (stacked on small screens)
+   ------------------------------------------------------------------ */
+
+.console-actions {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(340px, 1fr));
+    gap: 20px;
+    align-items: start;
+}
+
+/* The package list is wide enough for "name · nights · price" */
+.entry-package {
+    flex: 1 1 260px;
+    max-width: 380px;
+}
+
+.exit-results {
+    display: flex;
+    flex-direction: column;
+    border: 1px solid var(--mud-palette-lines-default);
+    border-radius: 8px;
+    overflow: hidden;
+}
+
+/* A result is a real button that looks like a list row */
+.exit-result {
+    width: 100%;
+    background: none;
+    border-left: none;
+    border-right: none;
+    border-bottom: none;
+    font: inherit;
+    text-align: left;
+    cursor: pointer;
+}
+
+    .exit-result:focus-visible {
+        outline: 3px solid var(--mud-palette-primary);
+        outline-offset: -3px;
+    }
+
+.exit-plate {
+    letter-spacing: .06em;
+    font-variant-numeric: tabular-nums;
+}
+
+.exit-plate-large {
+    font-size: 1.375rem;
+}
+
+/* The vehicle's card inside the exit panel */
+.exit-ticket {
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+    padding: 16px;
+    border: 1px solid var(--mud-palette-lines-default);
+    border-radius: 10px;
+    background: var(--mud-palette-background-gray);
+}
+
+.exit-ticket-head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+}
+
+.exit-facts {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px 18px;
+}
+
+.exit-amount {
+    font-size: 2rem;
+    font-weight: 700;
+    font-variant-numeric: tabular-nums;
+}
+
+.exit-options {
+    display: flex;
+    flex-direction: column;
+}
+
+.exit-option {
+    display: inline-flex;
+    flex-wrap: wrap;
+    align-items: baseline;
+    gap: 4px 10px;
+}
+
+.exit-actions {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: flex-end;
+    gap: 10px;
 }

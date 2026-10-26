@@ -1,4 +1,5 @@
 ﻿using ParkingApp.Shared.Console;
+using ParkingApp.Shared.Pricing;
 using ParkingApp.Shared.Responses;
 using ParkingApp.Shared.Spots;
 using System.Net.Http.Json;
@@ -41,4 +42,10 @@ public class ConsoleConsumer : IConsoleConsumer
 		// Throws HttpRequestException on non-2xx (e.g. 400, 403, 500) — the view model catches it
 		return await _httpClient.GetFromJsonAsync<ApiResponse<SpotMapDto>>(url);
 	}
+
+	/// <inheritdoc />
+	public async Task<ApiResponse<List<OvernightPackageDto>>?> GetOvernightPackagesAsync() =>
+		// Throws HttpRequestException on non-2xx — the view model catches it
+		await _httpClient
+			.GetFromJsonAsync<ApiResponse<List<OvernightPackageDto>>>("api/console/overnight-packages");
 }

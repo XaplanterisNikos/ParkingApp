@@ -1,4 +1,5 @@
 ﻿using ParkingApp.Shared.Console;
+using ParkingApp.Shared.Pricing;
 using ParkingApp.Shared.Responses;
 using ParkingApp.Shared.Spots;
 
@@ -23,4 +24,9 @@ public interface IConsoleConsumer
 	/// The vehicle's size category, or <c>null</c> to get the map without a suggestion.
 	/// </param>
 	Task<ApiResponse<SpotMapDto>?> GetSpotMapAsync(SpotSize? size);
+
+	/// <summary>
+	/// Gets the overnight packages of the active branch's current price list (for the entry form).
+	/// </summary>
+	Task<ApiResponse<List<OvernightPackageDto>>?> GetOvernightPackagesAsync();
 }

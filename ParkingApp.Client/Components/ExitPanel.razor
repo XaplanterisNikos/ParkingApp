@@ -1,0 +1,224 @@
+﻿@namespace ParkingApp.Client.Components
+@using ParkingApp.Client.Formatting
+@using ParkingApp.Shared.Pricing
+@using ParkingApp.Shared.Tickets
+
+@* Presentational: search, ticket card and confirmation; the rules and requests belong to the view model. *@
+<MudPaper Outlined="true" Class="section-card exit-panel">
+    <MudText Typo="Typo.h5" HtmlTag="h2">Έξοδος</MudText>
+
+    @* The customer brings the ticket (spot code) or, without it, says the plate *@
+    <MudTextField T="string"
+                  Value="@SearchText"
+                  ValueChanged="OnSearchChanged"
+                  Immediate="true"
+                  Label="Πινακίδα ή θέση"
+                  Variant="Variant.Outlined"
+                  Adornment="Adornment.Start"
+                  AdornmentIcon="@Icons.Material.Outlined.Search"
+                  HelperText="Η θέση γράφεται στο εισιτήριο· χωρίς εισιτήριο, ψάξε με την πινακίδα."
+                  Disabled="@IsExiting"
+                  Class="entry-plate-input" />
+
+    @if (Quote is null && !IsLoadingQuote && !string.IsNullOrWhiteSpace(SearchText))
+    {
+        @* Search results: one row per active ticket that matches *@
+        @if (Results.Count == 0)
+        {
+            <span class="muted">Δεν βρέθηκε όχημα μέσα στο parking.</span>
+        }
+        else
+        {
+            <div class="exit-results">
+                @foreach (var ticket in Results)
+                {
+                    <button type="button" class="list-row exit-result" @onclick="() => OnSelectTicket.InvokeAsync(ticket.Id)">
+                        <strong class="exit-plate">@LicensePlateNormalizer.ToDisplay(ticket.LicensePlate, ticket.PlateKind)</strong>
+                        <span class="list-row-title">Θέση @ticket.SpotNumber</span>
+                        <span class="muted tabular">από @DisplayFormat.AthensTime(ticket.EnteredAt)</span>
+                    </button>
+                }
+            </div>
+        }
+    }
+
+    @if (IsLoadingQuote)
+    {
+        <MudProgressLinear Indeterminate="true" Color="Color.Primary" />
+    }
+
+    @if (Quote is not null)
+    {
+        var ticket = Quote.Ticket;
+
+        @* The vehicle's card: who, where, since when, and what it costs now *@
+        <div class="exit-ticket">
+            <div class="exit-ticket-head">
+                <strong class="exit-plate exit-plate-large">@LicensePlateNormalizer.ToDisplay(ticket.LicensePlate, ticket.PlateKind)</strong>
+                <MudIconButton Icon="@Icons.Material.Outlined.Close" aria-label="Κλείσιμο καρτέλας"
+                               Size="Size.Small" Disabled="@IsExiting" OnClick="OnClose" />
+            </div>
+
+            <div class="exit-facts">
+                <span>Θέση <strong>@ticket.SpotNumber</strong></span>
+                <span>Είσοδος <strong class="tabular">@DisplayFormat.AthensTime(ticket.EnteredAt, "dd/MM HH:mm")</strong></span>
+                <span>Διάρκεια <strong>@DisplayFormat.Duration(Quote.QuotedAt - ticket.EnteredAt)</strong></span>
+                @if (ticket.OvernightPackageName is { } packageName)
+                {
+                    <span>Πακέτο <strong>@packageName</strong></span>
+                }
+            </div>
+
+            @if (Quote.Options.Count == 1)
+            {
+                <div class="exit-amount">@DisplayFormat.Money(Quote.Options[0].Amount)</div>
+            }
+            else
+            {
+                @* The price list changed meanwhile, or the package was exceeded: the employee chooses *@
+                <MudRadioGroup T="int" Value="SelectedOptionIndex" ValueChanged="OnSelectOption" Class="exit-options">
+                    @for (var index = 0; index < Quote.Options.Count; index++)
+                    {
+                        var option = Quote.Options[index];
+                        <MudRadio T="int" Value="@index" Color="Color.Primary" Disabled="@IsExiting">
+                            <span class="exit-option">
+                                <strong>@DisplayFormat.Money(option.Amount)</strong>
+                                <span class="muted">@OptionLabel(option)</span>
+                            </span>
+                        </MudRadio>
+                    }
+                </MudRadioGroup>
+            }
+
+            <span class="muted entry-hint">
+                Υπολογισμός στις @DisplayFormat.AthensTime(Quote.QuotedAt)· το τελικό ποσό βγαίνει τη στιγμή της εξόδου.
+            </span>
+
+            <div class="exit-actions">
+                @if (IsConfirming && SelectedOption is not null)
+                {
+                    @* Second step: the button itself says what will be charged *@
+                    <MudButton Variant="Variant.Text" Disabled="@IsExiting" OnClick="OnCancelExit">Άκυρο</MudButton>
+                    <MudButton Variant="Variant.Filled" Color="Color.Success" Size="Size.Large"
+                               StartIcon="@Icons.Material.Filled.Check" Disabled="@IsExiting" OnClick="OnConfirmExit">
+                        @(IsExiting ? "Έξοδος..." : $"Επιβεβαίωση: {DisplayFormat.Money(SelectedOption.Amount)}")
+                    </MudButton>
+                }
+                else
+                {
+                    <MudButton Variant="Variant.Text" StartIcon="@Icons.Material.Outlined.Refresh"
+                               Disabled="@IsExiting" OnClick="OnRefreshQuote">Ανανέωση ποσού</MudButton>
+                    <MudButton Variant="Variant.Filled" Color="Color.Primary" Size="Size.Large"
+                               StartIcon="@Icons.Material.Filled.ExitToApp" Disabled="@IsExiting" OnClick="OnRequestExit">
+                        Κλείσιμο χρέωσης
+                    </MudButton>
+                }
+            </div>
+        </div>
+    }
+
+    @if (!string.IsNullOrEmpty(Error))
+    {
+        <MudAlert Severity="Severity.Error" Dense="true" role="alert">@Error</MudAlert>
+    }
+    else if (LastExit is not null)
+    {
+        <MudAlert Severity="Severity.Success" Dense="true" role="status">
+            Έξοδος: <strong>@LicensePlateNormalizer.ToDisplay(LastExit.LicensePlate, LastExit.PlateKind)</strong>
+            από τη θέση <strong>@LastExit.SpotNumber</strong> ·
+            <strong>@DisplayFormat.Money(LastExit.AmountCharged ?? 0m)</strong>
+            @if (LastExit.ExitedAt is { } exitedAt)
+            {
+                <text> · ώρα @DisplayFormat.AthensTime(exitedAt)</text>
+            }
+        </MudAlert>
+    }
+
+    @if (Quote is null && !IsLoadingQuote && string.IsNullOrWhiteSpace(SearchText) && LastExit is null && string.IsNullOrEmpty(Error))
+    {
+        <span class="muted">Ή πάτησε μια πιασμένη θέση στον χάρτη.</span>
+    }
+</MudPaper>
+
+@code {
+    /// <summary>What the employee typed in the search.</summary>
+    [Parameter] public string SearchText { get; set; } = string.Empty;
+
+    /// <summary>Raised on every key press in the search.</summary>
+    [Parameter] public EventCallback<string> OnSearchChanged { get; set; }
+
+    /// <summary>The active tickets that match the search.</summary>
+    [Parameter] public List<TicketDto> Results { get; set; } = new();
+
+    /// <summary>Raised when the employee opens a ticket from the results.</summary>
+    [Parameter] public EventCallback<Guid> OnSelectTicket { get; set; }
+
+    /// <summary>The charge preview of the open ticket, or null.</summary>
+    [Parameter] public ExitQuoteDto? Quote { get; set; }
+
+    /// <summary>True while the preview is loading.</summary>
+    [Parameter] public bool IsLoadingQuote { get; set; }
+
+    /// <summary>The chosen way to charge (index in the quote's options).</summary>
+    [Parameter] public int SelectedOptionIndex { get; set; }
+
+    /// <summary>The chosen way to charge, or null.</summary>
+    [Parameter] public ExitChargeOptionDto? SelectedOption { get; set; }
+
+    /// <summary>Raised when the employee chooses another way to charge.</summary>
+    [Parameter] public EventCallback<int> OnSelectOption { get; set; }
+
+    /// <summary>True after the first press: the button now asks for confirmation.</summary>
+    [Parameter] public bool IsConfirming { get; set; }
+
+    /// <summary>True while the exit request is in flight.</summary>
+    [Parameter] public bool IsExiting { get; set; }
+
+    /// <summary>The last exit problem, or null.</summary>
+    [Parameter] public string? Error { get; set; }
+
+    /// <summary>The ticket of the last successful exit, or null.</summary>
+    [Parameter] public TicketDto? LastExit { get; set; }
+
+    /// <summary>First press of "close charge".</summary>
+    [Parameter] public EventCallback OnRequestExit { get; set; }
+
+    /// <summary>Cancels the confirmation.</summary>
+    [Parameter] public EventCallback OnCancelExit { get; set; }
+
+    /// <summary>Confirms the exit.</summary>
+    [Parameter] public EventCallback OnConfirmExit { get; set; }
+
+    /// <summary>Recalculates the amount (it grows with time).</summary>
+    [Parameter] public EventCallback OnRefreshQuote { get; set; }
+
+    /// <summary>Closes the card without an exit.</summary>
+    [Parameter] public EventCallback OnClose { get; set; }
+
+    /// <summary>
+    /// Says in words what makes this option different: the price list version (only when there
+    /// are two) and the overstay rule (only for an exceeded package).
+    /// </summary>
+    private string OptionLabel(ExitChargeOptionDto option)
+    {
+        var parts = new List<string>();
+
+        if (Quote!.Options.Select(item => item.TariffVersionId).Distinct().Count() > 1)
+        {
+            parts.Add(option.IsCurrentVersion
+                ? "τρέχων τιμοκατάλογος"
+                : $"τιμοκατάλογος εισόδου ({DisplayFormat.AthensTime(option.VersionCreatedAt, "dd/MM")})");
+        }
+
+        if (option.Overstay == PackageOverstay.PriceList)
+        {
+            parts.Add("το επιπλέον με τον κατάλογο");
+        }
+        else if (option.Overstay == PackageOverstay.RenewPackage)
+        {
+            parts.Add("ανανέωση πακέτου");
+        }
+
+        return string.Join(" · ", parts);
+    }
+}

@@ -1,5 +1,7 @@
 ﻿@namespace ParkingApp.Client.Components
+@using ParkingApp.Client.Formatting
 @using ParkingApp.Shared.Console
+@using ParkingApp.Shared.Pricing
 @using ParkingApp.Shared.Spots
 @using ParkingApp.Shared.Tickets
 
@@ -90,6 +92,41 @@
             }
         </div>
 
+        @* 4. Overnight package: only when the owner has made packages; filtered by the spot's size *@
+        @if (HasAnyPackages)
+        {
+            <div class="entry-row">
+                <span class="entry-label">Διανυκτέρευση</span>
+                @if (SelectedSpot is null)
+                {
+                    <span class="muted">Διάλεξε πρώτα θέση.</span>
+                }
+                else if (Packages.Count == 0)
+                {
+                    <span class="muted">Δεν υπάρχουν πακέτα για θέση @SpotSizeInfo.NameOf(SelectedSpot.Size).</span>
+                }
+                else
+                {
+                    <MudSelect T="Guid?"
+                               Value="SelectedPackageId"
+                               ValueChanged="OnSelectPackage"
+                               Variant="Variant.Outlined"
+                               Margin="Margin.Dense"
+                               Disabled="@IsSubmitting"
+                               aria-label="Πακέτο διανυκτέρευσης"
+                               Class="entry-package">
+                        <MudSelectItem T="Guid?" Value="@((Guid?)null)">Όχι, κανονική χρέωση</MudSelectItem>
+                        @foreach (var package in Packages)
+                        {
+                            <MudSelectItem T="Guid?" Value="@((Guid?)package.Id)">
+                                @package.Name · @NightsText(package.Nights) · @DisplayFormat.Money(package.Price)
+                            </MudSelectItem>
+                        }
+                    </MudSelect>
+                }
+            </div>
+        }
+
         @if (!string.IsNullOrEmpty(Error))
         {
             <MudAlert Severity="Severity.Error" Dense="true" role="alert">@Error</MudAlert>
@@ -100,7 +137,7 @@
             <MudAlert Severity="Severity.Success" Dense="true" role="status">
                 Εκδόθηκε εισιτήριο:
                 <strong>@LicensePlateNormalizer.ToDisplay(LastTicket.LicensePlate, LastTicket.PlateKind)</strong>
-                στη θέση <strong>@LastTicket.SpotNumber</strong>, ώρα @AthensTime(LastTicket.EnteredAt).
+                στη θέση <strong>@LastTicket.SpotNumber</strong>, ώρα @DisplayFormat.AthensTime(LastTicket.EnteredAt)@(LastTicket.OvernightPackageName is { } packageName ? $", πακέτο «{packageName}»" : "").
             </MudAlert>
         }
 
@@ -166,25 +203,22 @@
     /// <summary>Raised when the employee issues the ticket (button or Enter).</summary>
     [Parameter] public EventCallback OnSubmit { get; set; }
 
+    /// <summary>True when the branch's price list has any overnight package (shows the package row).</summary>
+    [Parameter] public bool HasAnyPackages { get; set; }
+
+    /// <summary>The packages for the selected spot's size.</summary>
+    [Parameter] public List<OvernightPackageDto> Packages { get; set; } = new();
+
+    /// <summary>The chosen package, or null for a normal stay.</summary>
+    [Parameter] public Guid? SelectedPackageId { get; set; }
+
+    /// <summary>Raised when the employee chooses a package (or null for a normal stay).</summary>
+    [Parameter] public EventCallback<Guid?> OnSelectPackage { get; set; }
+
+    /// <summary>"1 νύχτα" or "N νύχτες".</summary>
+    private static string NightsText(int nights) => nights == 1 ? "1 νύχτα" : $"{nights} νύχτες";
+
     /// <summary>The line under the plate field: the stored form when valid, a short hint otherwise.</summary>
     private string PlateHelperText =>
         PlatePreview is null ? "Κενά και παύλες δεν χρειάζονται." : $"Θα καταχωριστεί ως {PlatePreview}";
-
-    /// <summary>
-    /// Formats a UTC-based time as hours and minutes in Athens time. If the browser has no
-    /// time zone data, it falls back to the browser's local time instead of failing.
-    /// </summary>
-    /// <param name="time">The time to show.</param>
-    private static string AthensTime(DateTimeOffset time)
-    {
-        try
-        {
-            var athens = TimeZoneInfo.FindSystemTimeZoneById("Europe/Athens");
-            return TimeZoneInfo.ConvertTime(time, athens).ToString("HH:mm");
-        }
-        catch (TimeZoneNotFoundException)
-        {
-            return time.ToLocalTime().ToString("HH:mm");
-        }
-    }
 }

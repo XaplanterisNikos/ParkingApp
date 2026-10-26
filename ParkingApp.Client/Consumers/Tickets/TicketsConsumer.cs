@@ -31,4 +31,24 @@ public class TicketsConsumer : ITicketsConsumer
 		// for every status. An empty body (e.g. 401, 403) throws; the view model catches it.
 		return await response.Content.ReadFromJsonAsync<ApiResponse<TicketDto>>();
 	}
+
+	/// <inheritdoc />
+	public async Task<ApiResponse<List<TicketDto>>?> GetActiveAsync() =>
+		// Throws HttpRequestException on non-2xx — the view model catches it
+		await _httpClient.GetFromJsonAsync<ApiResponse<List<TicketDto>>>("api/tickets/active");
+
+	/// <inheritdoc />
+	public async Task<ApiResponse<ExitQuoteDto>?> GetQuoteAsync(Guid ticketId)
+	{
+		// GetAsync (not GetFromJsonAsync): 404 and 409 carry a message the employee must see
+		var response = await _httpClient.GetAsync($"api/tickets/{ticketId}/quote");
+		return await response.Content.ReadFromJsonAsync<ApiResponse<ExitQuoteDto>>();
+	}
+
+	/// <inheritdoc />
+	public async Task<ApiResponse<TicketDto>?> ExitAsync(Guid ticketId, ExitTicketRequest request)
+	{
+		var response = await _httpClient.PostAsJsonAsync($"api/tickets/{ticketId}/exit", request);
+		return await response.Content.ReadFromJsonAsync<ApiResponse<TicketDto>>();
+	}
 }

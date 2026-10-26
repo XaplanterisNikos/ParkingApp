@@ -77,7 +77,18 @@
                             <div class="bay-row">
                                 @foreach (var spot in sizeGroup)
                                 {
-                                    if (CanSelect(spot))
+                                    if (spot.IsOccupied)
+                                    {
+                                        @* An occupied spot opens its ticket for exit *@
+                                        <button type="button"
+                                                class="@BayCss(spot)"
+                                                title="@BayTitle(spot)"
+                                                aria-pressed="@(spot.Id == FocusedSpotId ? "true" : "false")"
+                                                @onclick="() => OnSelectOccupied.InvokeAsync(spot.Id)">
+                                            @BayContent(spot)
+                                        </button>
+                                    }
+                                    else if (CanSelect(spot))
                                     {
                                         @* A free spot that fits the vehicle: a real button, reachable with the keyboard *@
                                         <button type="button"
@@ -124,6 +135,12 @@
     /// <summary>Raised when the employee picks a free spot that fits the vehicle.</summary>
     [Parameter] public EventCallback<Guid> OnSelectSpot { get; set; }
 
+    /// <summary>The spot of the ticket open in the exit card; it is shown larger. Null when none.</summary>
+    [Parameter] public Guid? FocusedSpotId { get; set; }
+
+    /// <summary>Raised when the employee clicks an occupied spot (to open its ticket).</summary>
+    [Parameter] public EventCallback<Guid> OnSelectOccupied { get; set; }
+
     /// <summary>Raised when the employee switches to another floor.</summary>
     [Parameter] public EventCallback<FloorType> OnSelectFloor { get; set; }
 
@@ -162,8 +179,15 @@
             <span>@spot.Number</span>
         </text>;
 
-    /// <summary>CSS classes of a bay: the selected spot first, then occupied, too small, or free.</summary>
-    private string BayCss(SpotStatusDto spot)
+    /// <summary>
+    /// CSS classes of a bay: its state (selected, occupied, too small or free), plus "focused"
+    /// for the spot whose ticket is open in the exit card.
+    /// </summary>
+    private string BayCss(SpotStatusDto spot) =>
+        spot.Id == FocusedSpotId ? BayStateCss(spot) + " bay-focused" : BayStateCss(spot);
+
+    /// <summary>The state class of a bay: the selected spot first, then occupied, too small, or free.</summary>
+    private string BayStateCss(SpotStatusDto spot)
     {
         if (spot.Id == SelectedSpotId) return "bay bay-selected";
         if (spot.IsOccupied) return "bay bay-occupied";

@@ -45,31 +45,58 @@
                         Error="@_viewModel.OccupancyError"
                         OnRefresh="_viewModel.RefreshAsync" />
 
-        @* The entry form and the map share the vehicle size and the selected spot through the view model *@
-        <EntryPanel SelectedVehicleSize="_viewModel.SelectedVehicleSize"
-                    OnSelectVehicleSize="_viewModel.SelectVehicleSizeAsync"
-                    SelectedPlateKind="_viewModel.SelectedPlateKind"
-                    OnSelectPlateKind="_viewModel.SetPlateKind"
-                    Plate="@_viewModel.PlateInput"
-                    OnPlateChanged="_viewModel.SetPlateInput"
-                    PlatePreview="@_viewModel.PlatePreview"
-                    PlateError="@_viewModel.PlateError"
-                    SelectedSpot="_viewModel.SelectedSpot"
-                    IsSuggested="_viewModel.IsSelectedSpotSuggested"
-                    CanSubmit="_viewModel.CanSubmitEntry"
-                    IsSubmitting="_viewModel.IsSubmittingEntry"
-                    IsLoading="_viewModel.IsLoadingSpotMap"
-                    Error="@_viewModel.EntryError"
-                    LastTicket="_viewModel.LastTicket"
-                    OnSubmit="_viewModel.SubmitEntryAsync" />
+        @* Entry and exit side by side; both work with the map below through the view model *@
+        <div class="console-actions">
+            <EntryPanel SelectedVehicleSize="_viewModel.SelectedVehicleSize"
+                        OnSelectVehicleSize="_viewModel.SelectVehicleSizeAsync"
+                        SelectedPlateKind="_viewModel.SelectedPlateKind"
+                        OnSelectPlateKind="_viewModel.SetPlateKind"
+                        Plate="@_viewModel.PlateInput"
+                        OnPlateChanged="_viewModel.SetPlateInput"
+                        PlatePreview="@_viewModel.PlatePreview"
+                        PlateError="@_viewModel.PlateError"
+                        SelectedSpot="_viewModel.SelectedSpot"
+                        IsSuggested="_viewModel.IsSelectedSpotSuggested"
+                        HasAnyPackages="_viewModel.Packages.Count > 0"
+                        Packages="_viewModel.AvailablePackages"
+                        SelectedPackageId="_viewModel.EffectivePackageId"
+                        OnSelectPackage="_viewModel.SelectPackage"
+                        CanSubmit="_viewModel.CanSubmitEntry"
+                        IsSubmitting="_viewModel.IsSubmittingEntry"
+                        IsLoading="_viewModel.IsLoadingSpotMap"
+                        Error="@_viewModel.EntryError"
+                        LastTicket="_viewModel.LastTicket"
+                        OnSubmit="_viewModel.SubmitEntryAsync" />
+
+            <ExitPanel SearchText="@_viewModel.ExitSearchText"
+                       OnSearchChanged="_viewModel.SetExitSearch"
+                       Results="_viewModel.ExitSearchResults"
+                       OnSelectTicket="_viewModel.SelectTicketAsync"
+                       Quote="_viewModel.ExitQuote"
+                       IsLoadingQuote="_viewModel.IsLoadingQuote"
+                       SelectedOptionIndex="_viewModel.SelectedOptionIndex"
+                       SelectedOption="_viewModel.SelectedOption"
+                       OnSelectOption="_viewModel.SelectOption"
+                       IsConfirming="_viewModel.IsConfirmingExit"
+                       IsExiting="_viewModel.IsExiting"
+                       Error="@_viewModel.ExitError"
+                       LastExit="_viewModel.LastExit"
+                       OnRequestExit="_viewModel.RequestExit"
+                       OnCancelExit="_viewModel.CancelExit"
+                       OnConfirmExit="_viewModel.ConfirmExitAsync"
+                       OnRefreshQuote="_viewModel.RefreshQuoteAsync"
+                       OnClose="_viewModel.CloseTicket" />
+        </div>
 
         <SpotMapPanel Map="_viewModel.SpotMap"
                       SelectedFloor="_viewModel.SelectedFloor"
                       SelectedVehicleSize="_viewModel.SelectedVehicleSize"
                       SelectedSpotId="_viewModel.SelectedSpotId"
+                      FocusedSpotId="_viewModel.FocusedSpotId"
                       IsLoading="_viewModel.IsLoadingSpotMap"
                       Error="@_viewModel.SpotMapError"
                       OnSelectSpot="_viewModel.SelectSpot"
+                      OnSelectOccupied="_viewModel.SelectOccupiedSpotAsync"
                       OnSelectFloor="_viewModel.SelectFloor" />
     }
 </div>
