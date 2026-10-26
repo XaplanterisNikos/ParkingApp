@@ -32,6 +32,14 @@ namespace ParkingApp.Api.Data
 		public DbSet<ParkingSpot> ParkingSpots => Set<ParkingSpot>();
 		/// <summary>Employee-to-branch assignments (many-to-many).</summary>
 		public DbSet<EmployeeBranch> EmployeeBranches => Set<EmployeeBranch>();
+		/// <summary>Price list versions of the branches (never changed, only added).</summary>
+		public DbSet<TariffVersion> TariffVersions => Set<TariffVersion>();
+		/// <summary>Prices per spot size and day type, inside a price list version.</summary>
+		public DbSet<TariffRate> TariffRates => Set<TariffRate>();
+		/// <summary>Overnight packages, inside a price list version.</summary>
+		public DbSet<OvernightPackage> OvernightPackages => Set<OvernightPackage>();
+		/// <summary>The holiday calendar of each company.</summary>
+		public DbSet<Holiday> Holidays => Set<Holiday>();
 
 		protected override void OnModelCreating(ModelBuilder modelBuilder)
 		{
@@ -131,6 +139,21 @@ namespace ParkingApp.Api.Data
 				entity.HasOne<ApplicationUser>()
 					.WithMany()
 					.HasForeignKey(ticket => ticket.ExitedByEmployeeId)
+					.OnDelete(DeleteBehavior.Restrict);
+
+				// Money: 2 decimals, enough for any parking charge. VAT: e.g. 24.00 or 13.00.
+				entity.Property(ticket => ticket.AmountCharged).HasPrecision(10, 2);
+				entity.Property(ticket => ticket.VatRate).HasPrecision(5, 2);
+
+				// Restrict, like the other ticket links: price list versions are never deleted.
+				entity.HasOne<TariffVersion>()
+					.WithMany()
+					.HasForeignKey(ticket => ticket.TariffVersionId)
+					.OnDelete(DeleteBehavior.Restrict);
+
+				entity.HasOne<OvernightPackage>()
+					.WithMany()
+					.HasForeignKey(ticket => ticket.OvernightPackageId)
 					.OnDelete(DeleteBehavior.Restrict);
 
 				// --- Concurrency guards (enforced by the database, not by our code) ---
@@ -237,6 +260,97 @@ namespace ParkingApp.Api.Data
 				entity.HasQueryFilter(eb => eb.CompanyId == _tenantProvider.CurrentCompanyId);
 			});
 
+			// --- Pricing ---
+			// A price list version and its rows are never changed or deleted after creation,
+			// so every relationship is Restrict: nothing can disappear under an old ticket.
+
+			modelBuilder.Entity<TariffVersion>(entity =>
+			{
+				entity.ToTable("TariffVersions");
+				entity.HasKey(version => version.Id);
+				entity.Property(version => version.Id).HasDefaultValueSql("NEWSEQUENTIALID()");
+
+				entity.Property(version => version.VatRate).HasPrecision(5, 2);
+
+				entity.HasIndex(version => version.CompanyId);
+
+				// "Current version of a branch" = newest CreatedAt; this index serves that query.
+				entity.HasIndex(version => new { version.BranchId, version.CreatedAt });
+
+				entity.HasOne<Branch>()
+					.WithMany()
+					.HasForeignKey(version => version.BranchId)
+					.OnDelete(DeleteBehavior.Restrict);
+
+				entity.HasMany(version => version.Rates)
+					.WithOne()
+					.HasForeignKey(rate => rate.TariffVersionId)
+					.OnDelete(DeleteBehavior.Restrict);
+
+				entity.HasMany(version => version.Packages)
+					.WithOne()
+					.HasForeignKey(package => package.TariffVersionId)
+					.OnDelete(DeleteBehavior.Restrict);
+
+				entity.HasQueryFilter(version => version.CompanyId == _tenantProvider.CurrentCompanyId);
+			});
+
+			modelBuilder.Entity<TariffRate>(entity =>
+			{
+				entity.ToTable("TariffRates");
+				entity.HasKey(rate => rate.Id);
+				entity.Property(rate => rate.Id).HasDefaultValueSql("NEWSEQUENTIALID()");
+
+				entity.Property(rate => rate.Size).HasConversion<int>();
+				entity.Property(rate => rate.DayType).HasConversion<int>();
+				entity.Property(rate => rate.DayStepPrice).HasPrecision(10, 2);
+				entity.Property(rate => rate.NightStepPrice).HasPrecision(10, 2);
+				entity.Property(rate => rate.DailyCap).HasPrecision(10, 2);
+
+				entity.HasIndex(rate => rate.CompanyId);
+
+				// One row per size and day type in each version.
+				entity.HasIndex(rate => new { rate.TariffVersionId, rate.Size, rate.DayType })
+					.IsUnique();
+
+				entity.HasQueryFilter(rate => rate.CompanyId == _tenantProvider.CurrentCompanyId);
+			});
+
+			modelBuilder.Entity<OvernightPackage>(entity =>
+			{
+				entity.ToTable("OvernightPackages");
+				entity.HasKey(package => package.Id);
+				entity.Property(package => package.Id).HasDefaultValueSql("NEWSEQUENTIALID()");
+
+				entity.Property(package => package.Name)
+					.IsRequired()
+					.HasMaxLength(100);
+
+				entity.Property(package => package.Size).HasConversion<int>();
+				entity.Property(package => package.Price).HasPrecision(10, 2);
+
+				entity.HasIndex(package => package.CompanyId);
+				entity.HasIndex(package => package.TariffVersionId);
+
+				entity.HasQueryFilter(package => package.CompanyId == _tenantProvider.CurrentCompanyId);
+			});
+
+			modelBuilder.Entity<Holiday>(entity =>
+			{
+				entity.ToTable("Holidays");
+				entity.HasKey(holiday => holiday.Id);
+				entity.Property(holiday => holiday.Id).HasDefaultValueSql("NEWSEQUENTIALID()");
+
+				entity.Property(holiday => holiday.Name)
+					.IsRequired()
+					.HasMaxLength(100);
+
+				// A date appears at most once in a company's calendar.
+				entity.HasIndex(holiday => new { holiday.CompanyId, holiday.Date })
+					.IsUnique();
+
+				entity.HasQueryFilter(holiday => holiday.CompanyId == _tenantProvider.CurrentCompanyId);
+			});
 		}
 	}
 }

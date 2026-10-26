@@ -39,8 +39,26 @@ public class ParkingTicket : TenantEntity
 	/// <summary>The employee who registered the exit; <c>null</c> while the ticket is active.</summary>
 	public string? ExitedByEmployeeId { get; set; }
 
+	/// <summary>
+	/// The price list version that was current when the vehicle entered. At exit the employee
+	/// may charge with this version or with the current one. <c>null</c> for tickets issued
+	/// before price lists existed.
+	/// </summary>
+	public Guid? TariffVersionId { get; set; }
+
+	/// <summary>The overnight package chosen at entry; <c>null</c> when the normal price list applies.</summary>
+	public Guid? OvernightPackageId { get; set; }
+
+	/// <summary>The amount charged at exit, VAT included; <c>null</c> while the ticket is active.</summary>
+	public decimal? AmountCharged { get; set; }
+
+	/// <summary>
+	/// The VAT rate (percent) of the charge, kept with the ticket so the invoice stays correct
+	/// even if the owner changes the rate later; <c>null</c> while the ticket is active.
+	/// </summary>
+	public decimal? VatRate { get; set; }
+
 	// --- fields to add in later slices ---
 	// ShiftId (nullable) — when shifts exist
-	// Amount charged — when owner pricing exists
 	// Status + void reason — ticket voiding instead of deletion
 }

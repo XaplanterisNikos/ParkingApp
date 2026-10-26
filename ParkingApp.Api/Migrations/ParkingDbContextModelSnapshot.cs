@@ -268,6 +268,9 @@ namespace ParkingApp.Api.Migrations
                         .HasMaxLength(200)
                         .HasColumnType("nvarchar(200)");
 
+                    b.Property<bool>("SundaysAreHolidays")
+                        .HasColumnType("bit");
+
                     b.HasKey("Id");
 
                     b.HasIndex("Code")
@@ -331,6 +334,69 @@ namespace ParkingApp.Api.Migrations
                     b.ToTable("Floors", (string)null);
                 });
 
+            modelBuilder.Entity("ParkingApp.Api.Data.Entities.Holiday", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uniqueidentifier")
+                        .HasDefaultValueSql("NEWSEQUENTIALID()");
+
+                    b.Property<Guid>("CompanyId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<DateOnly>("Date")
+                        .HasColumnType("date");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("nvarchar(100)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("CompanyId", "Date")
+                        .IsUnique();
+
+                    b.ToTable("Holidays", (string)null);
+                });
+
+            modelBuilder.Entity("ParkingApp.Api.Data.Entities.OvernightPackage", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uniqueidentifier")
+                        .HasDefaultValueSql("NEWSEQUENTIALID()");
+
+                    b.Property<Guid>("CompanyId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("nvarchar(100)");
+
+                    b.Property<int>("Nights")
+                        .HasColumnType("int");
+
+                    b.Property<decimal>("Price")
+                        .HasPrecision(10, 2)
+                        .HasColumnType("decimal(10,2)");
+
+                    b.Property<int>("Size")
+                        .HasColumnType("int");
+
+                    b.Property<Guid>("TariffVersionId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("CompanyId");
+
+                    b.HasIndex("TariffVersionId");
+
+                    b.ToTable("OvernightPackages", (string)null);
+                });
+
             modelBuilder.Entity("ParkingApp.Api.Data.Entities.ParkingSpot", b =>
                 {
                     b.Property<Guid>("Id")
@@ -368,6 +434,10 @@ namespace ParkingApp.Api.Migrations
                         .HasColumnType("uniqueidentifier")
                         .HasDefaultValueSql("NEWSEQUENTIALID()");
 
+                    b.Property<decimal?>("AmountCharged")
+                        .HasPrecision(10, 2)
+                        .HasColumnType("decimal(10,2)");
+
                     b.Property<Guid>("BranchId")
                         .HasColumnType("uniqueidentifier");
 
@@ -392,11 +462,21 @@ namespace ParkingApp.Api.Migrations
                         .HasMaxLength(15)
                         .HasColumnType("nvarchar(15)");
 
+                    b.Property<Guid?>("OvernightPackageId")
+                        .HasColumnType("uniqueidentifier");
+
                     b.Property<Guid>("ParkingSpotId")
                         .HasColumnType("uniqueidentifier");
 
                     b.Property<int>("PlateKind")
                         .HasColumnType("int");
+
+                    b.Property<Guid?>("TariffVersionId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<decimal?>("VatRate")
+                        .HasPrecision(5, 2)
+                        .HasColumnType("decimal(5,2)");
 
                     b.HasKey("Id");
 
@@ -406,10 +486,14 @@ namespace ParkingApp.Api.Migrations
 
                     b.HasIndex("ExitedByEmployeeId");
 
+                    b.HasIndex("OvernightPackageId");
+
                     b.HasIndex("ParkingSpotId")
                         .IsUnique()
                         .HasDatabaseName("IX_ParkingTickets_ActivePerSpot")
                         .HasFilter("[ExitedAt] IS NULL");
+
+                    b.HasIndex("TariffVersionId");
 
                     b.HasIndex("BranchId", "LicensePlate")
                         .IsUnique()
@@ -417,6 +501,91 @@ namespace ParkingApp.Api.Migrations
                         .HasFilter("[ExitedAt] IS NULL");
 
                     b.ToTable("ParkingTickets", (string)null);
+                });
+
+            modelBuilder.Entity("ParkingApp.Api.Data.Entities.TariffRate", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uniqueidentifier")
+                        .HasDefaultValueSql("NEWSEQUENTIALID()");
+
+                    b.Property<Guid>("CompanyId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<decimal?>("DailyCap")
+                        .HasPrecision(10, 2)
+                        .HasColumnType("decimal(10,2)");
+
+                    b.Property<decimal>("DayStepPrice")
+                        .HasPrecision(10, 2)
+                        .HasColumnType("decimal(10,2)");
+
+                    b.Property<int>("DayType")
+                        .HasColumnType("int");
+
+                    b.Property<decimal>("NightStepPrice")
+                        .HasPrecision(10, 2)
+                        .HasColumnType("decimal(10,2)");
+
+                    b.Property<int>("Size")
+                        .HasColumnType("int");
+
+                    b.Property<Guid>("TariffVersionId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("CompanyId");
+
+                    b.HasIndex("TariffVersionId", "Size", "DayType")
+                        .IsUnique();
+
+                    b.ToTable("TariffRates", (string)null);
+                });
+
+            modelBuilder.Entity("ParkingApp.Api.Data.Entities.TariffVersion", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uniqueidentifier")
+                        .HasDefaultValueSql("NEWSEQUENTIALID()");
+
+                    b.Property<Guid>("BranchId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<Guid>("CompanyId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<DateTimeOffset>("CreatedAt")
+                        .HasColumnType("datetimeoffset");
+
+                    b.Property<int>("GraceMinutes")
+                        .HasColumnType("int");
+
+                    b.Property<TimeOnly>("NightEnd")
+                        .HasColumnType("time");
+
+                    b.Property<TimeOnly>("NightStart")
+                        .HasColumnType("time");
+
+                    b.Property<TimeOnly>("OvernightCheckoutTime")
+                        .HasColumnType("time");
+
+                    b.Property<int>("StepMinutes")
+                        .HasColumnType("int");
+
+                    b.Property<decimal>("VatRate")
+                        .HasPrecision(5, 2)
+                        .HasColumnType("decimal(5,2)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("CompanyId");
+
+                    b.HasIndex("BranchId", "CreatedAt");
+
+                    b.ToTable("TariffVersions", (string)null);
                 });
 
             modelBuilder.Entity("Microsoft.AspNetCore.Identity.IdentityRoleClaim<string>", b =>
@@ -505,6 +674,15 @@ namespace ParkingApp.Api.Migrations
                         .IsRequired();
                 });
 
+            modelBuilder.Entity("ParkingApp.Api.Data.Entities.OvernightPackage", b =>
+                {
+                    b.HasOne("ParkingApp.Api.Data.Entities.TariffVersion", null)
+                        .WithMany("Packages")
+                        .HasForeignKey("TariffVersionId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+                });
+
             modelBuilder.Entity("ParkingApp.Api.Data.Entities.ParkingSpot", b =>
                 {
                     b.HasOne("ParkingApp.Api.Data.Entities.Floor", null)
@@ -533,9 +711,37 @@ namespace ParkingApp.Api.Migrations
                         .HasForeignKey("ExitedByEmployeeId")
                         .OnDelete(DeleteBehavior.Restrict);
 
+                    b.HasOne("ParkingApp.Api.Data.Entities.OvernightPackage", null)
+                        .WithMany()
+                        .HasForeignKey("OvernightPackageId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
                     b.HasOne("ParkingApp.Api.Data.Entities.ParkingSpot", null)
                         .WithMany()
                         .HasForeignKey("ParkingSpotId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("ParkingApp.Api.Data.Entities.TariffVersion", null)
+                        .WithMany()
+                        .HasForeignKey("TariffVersionId")
+                        .OnDelete(DeleteBehavior.Restrict);
+                });
+
+            modelBuilder.Entity("ParkingApp.Api.Data.Entities.TariffRate", b =>
+                {
+                    b.HasOne("ParkingApp.Api.Data.Entities.TariffVersion", null)
+                        .WithMany("Rates")
+                        .HasForeignKey("TariffVersionId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+                });
+
+            modelBuilder.Entity("ParkingApp.Api.Data.Entities.TariffVersion", b =>
+                {
+                    b.HasOne("ParkingApp.Api.Data.Entities.Branch", null)
+                        .WithMany()
+                        .HasForeignKey("BranchId")
                         .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
                 });
@@ -543,6 +749,13 @@ namespace ParkingApp.Api.Migrations
             modelBuilder.Entity("ParkingApp.Api.Data.Entities.Company", b =>
                 {
                     b.Navigation("Users");
+                });
+
+            modelBuilder.Entity("ParkingApp.Api.Data.Entities.TariffVersion", b =>
+                {
+                    b.Navigation("Packages");
+
+                    b.Navigation("Rates");
                 });
 #pragma warning restore 612, 618
         }

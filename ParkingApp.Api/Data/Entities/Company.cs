@@ -21,4 +21,10 @@ public class Company
 	/// employee usernames ({code}.{username}) so usernames stay unique across tenants.
 	/// </summary>
 	public required string Code { get; set; }
+
+	/// <summary>
+	/// When true, every Sunday is charged with the holiday prices, in addition to the
+	/// holidays in the company's calendar.
+	/// </summary>
+	public bool SundaysAreHolidays { get; set; }
 }
