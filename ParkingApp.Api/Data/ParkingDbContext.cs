@@ -141,9 +141,11 @@ namespace ParkingApp.Api.Data
 					.HasFilter("[ExitedAt] IS NULL")
 					.HasDatabaseName("IX_ParkingTickets_ActivePerSpot");
 
-				// At most ONE active ticket per plate within a company:
-				// the same vehicle can't be "inside" twice.
-				entity.HasIndex(ticket => new { ticket.CompanyId, ticket.LicensePlate })
+				// At most ONE active ticket per plate within a branch:
+				// the same vehicle can't be "inside" the same parking twice.
+				// The rule is per branch, not per company: we issue receipts, we do not
+				// police plates, so the same plate may be active in two different branches.
+				entity.HasIndex(ticket => new { ticket.BranchId, ticket.LicensePlate })
 					.IsUnique()
 					.HasFilter("[ExitedAt] IS NULL")
 					.HasDatabaseName("IX_ParkingTickets_ActivePerPlate");

@@ -17,7 +17,7 @@ namespace ParkingApp.Api.Migrations
         {
 #pragma warning disable 612, 618
             modelBuilder
-                .HasAnnotation("ProductVersion", "10.0.11")
+                .HasAnnotation("ProductVersion", "10.0.14")
                 .HasAnnotation("Relational:MaxIdentifierLength", 128);
 
             SqlServerModelBuilderExtensions.UseIdentityColumns(modelBuilder);
@@ -395,9 +395,10 @@ namespace ParkingApp.Api.Migrations
                     b.Property<Guid>("ParkingSpotId")
                         .HasColumnType("uniqueidentifier");
 
-                    b.HasKey("Id");
+                    b.Property<int>("PlateKind")
+                        .HasColumnType("int");
 
-                    b.HasIndex("BranchId");
+                    b.HasKey("Id");
 
                     b.HasIndex("CompanyId");
 
@@ -410,7 +411,7 @@ namespace ParkingApp.Api.Migrations
                         .HasDatabaseName("IX_ParkingTickets_ActivePerSpot")
                         .HasFilter("[ExitedAt] IS NULL");
 
-                    b.HasIndex("CompanyId", "LicensePlate")
+                    b.HasIndex("BranchId", "LicensePlate")
                         .IsUnique()
                         .HasDatabaseName("IX_ParkingTickets_ActivePerPlate")
                         .HasFilter("[ExitedAt] IS NULL");

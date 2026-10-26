@@ -1,4 +1,6 @@
-﻿namespace ParkingApp.Api.Data.Entities;
+﻿using ParkingApp.Shared.Tickets;
+
+namespace ParkingApp.Api.Data.Entities;
 
 /// <summary>
 /// A parking ticket: one vehicle's stay in one spot, from entry to exit.
@@ -18,6 +20,12 @@ public class ParkingTicket : TenantEntity
 
 	/// <summary>The vehicle's licence plate, stored normalized (uppercase, Latin, no spaces/dashes).</summary>
 	public required string LicensePlate { get; set; }
+
+	/// <summary>
+	/// The kind of the plate. A Greek plate is stored with Latin letters, so the kind is
+	/// needed to show it again with Greek letters (for example on the receipt).
+	/// </summary>
+	public PlateKind PlateKind { get; set; }
 
 	/// <summary>When the vehicle entered (UTC-based, with offset).</summary>
 	public DateTimeOffset EnteredAt { get; set; }
